@@ -35,6 +35,7 @@ include_directories(${MPI_C_INCLUDE_PATH})
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   set(CMAKE_Fortran_FLAGS "-cpp -pthread")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -std=legacy")
 else()
   # nothing for now
   # may need to set for intel compiler or others
@@ -158,13 +159,13 @@ set(FSRCS TYPEMOD.f
 set(F90SRCS vtkComMod.f90
             vtkTypeParams.f90
             vtkXMLParser.f90
-            vtkLegacyParser.f90)
+            vtkLegacyParser.f90
+            c_interface_mod.f90)
 
 set(CSRCS SPLIT.c
           vtkZpipe.c)
 
 set(CXXSRCS remeshTet.cpp)
-
 
 if(WITH_TRILINOS)
   set(CXXSRCS ${CXXSRCS} trilinos_linear_solver.cpp)
@@ -199,6 +200,7 @@ target_link_libraries(${SV_SVFSI_EXE}
   ${TETGEN_LIBRARY_NAME}
   ${SV_MPI_Fortran_LIBRARIES}
   ${SV_LIB_SVFSILS_NAME}${SV_MPI_NAME_EXT}
+  ${SV_LIB_SVFSI_CINTERFACE_NAME}${SV_MPI_NAME_EXT}
   )
 
 # extra MPI libraries only if there are not set to NOT_FOUND or other null

@@ -8,33 +8,11 @@ else()
   # may need to reset for intel compiler or others
 endif()
 
-set(lib ${SV_LIB_SVFSILS_NAME}${SV_MPI_NAME_EXT})
+set(lib ${SV_LIB_SVFSI_CINTERFACE_NAME})
 
-set(FSRCS ADDBCMUL.f
-  BCAST.f   
-  CGRAD.f   
-  CPUT.f    
-  FSISOLVER.f 
-  GMRES.f   
-  LHS.f   
-  NORM.f    
-  OMPLA.f   
-  PRECOND.f 
-  SPARMUL.f
-  BC.f    
-  BICGS.f   
-  COMMU.f   
-  DOT.f   
-  GE.f    
-  INCOMMU.f 
-  LS.f    
-  NSSOLVER.f  
-  PCGMRES.f 
-  SOLVE.f)
+set(CSRCS interface.cpp)
 
-set(CSRCS HRCPUT.c)
-
-add_library(${lib} ${SV_LIBRARY_TYPE} ${FSRCS} ${CSRCS})
+add_library(${lib} ${SV_LIBRARY_TYPE} ${CSRCS})
 
 target_link_libraries(${lib} ${MPI_LIBRARY} ${MPI_Fortran_LIBRARIES})
 

@@ -39,6 +39,7 @@
       PROGRAM MAIN
       USE COMMOD
       USE ALLFUN
+      use c_interface_module
       IMPLICIT NONE
 
       LOGICAL l1, l2, l3
@@ -65,6 +66,11 @@
 
       resetSim  = .FALSE.
       rmsh%cntr = 0
+
+!     Initialize the C interface.
+      call c_interface_init()
+
+      call exit()
 
 !     Reading the user-defined parameters from foo.inp
  101  CALL READFILES
