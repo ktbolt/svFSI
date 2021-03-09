@@ -37,10 +37,13 @@
 !--------------------------------------------------------------------
 
       PROGRAM MAIN
+
       USE COMMOD
       USE ALLFUN
-      use c_interface_module
+      use compare_cpp_fortran
+
       IMPLICIT NONE
+
 
       LOGICAL l1, l2, l3
       INTEGER(KIND=IKIND) i, iM, iBc, ierr, iEqOld, stopTS
@@ -48,6 +51,9 @@
 
       INTEGER(KIND=IKIND), ALLOCATABLE :: incL(:)
       REAL(KIND=RKIND), ALLOCATABLE :: Ag(:,:), Yg(:,:), Dg(:,:), res(:)
+
+      character (len=32) :: in_file_name
+      integer str_len
 
       IF (IKIND.NE.LSIP .OR. RKIND.NE.LSRP) THEN
          STOP "Incompatible datatype precision between solver and FSILS"
@@ -59,7 +65,7 @@
 
       savedOnce = .FALSE.
       CALL MPI_INIT(i)
-      CALL cm%new(MPI_COMM_WORLD)
+      CALL cm % new(MPI_COMM_WORLD)
 
 !     Initiating the exception tracing
       CALL EXCEPTIONS
@@ -67,13 +73,39 @@
       resetSim  = .FALSE.
       rmsh%cntr = 0
 
-!     Initialize the C interface.
-      call c_interface_init()
+      ! Create a C++ Simulation object.
+      !
+      sim_interface = simulation()
+      !sim_interface = simulation()
 
-      call exit()
+      ! Read in the solver input XML file.
+      !
+      ! Assume that the XML file has the same name as the .txt 
+      ! input solver file.
+      !
+      call getarg(1, in_file_name)
+      str_len = len(trim(in_file_name))
+      write (*,*) '[main] Len input file name: ', str_len
+      in_file_name = trim(in_file_name(1:str_len-3)) // 'xml'
+      write (*,*) '[main] Input XML file name: ', in_file_name
+      call sim_interface % read_parameters(in_file_name)
 
-!     Reading the user-defined parameters from foo.inp
+      ! Load the mesh.
+      call sim_interface % load_mesh()
+
+      ! Create auxillary data needed for a simulation. 
+      call sim_interface % create_aux_data()
+
+      ! Read in solver input file, storing parameter values in 'COMMOD'. 
+      !
+      print *, "[MAIN] Call READFILES -->"
  101  CALL READFILES
+      print *, "[MAIN] --> READFILES return"
+      print *, "[MAIN] nsd: ", nsd
+
+      call compare_mesh()
+
+      call exit(0)
 
 !     Doing the partitioning and distributing the data to the all
 !     Processors

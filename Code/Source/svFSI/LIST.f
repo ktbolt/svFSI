@@ -70,6 +70,7 @@
      2      GFLS, GFLF
       END TYPE listType
 
+      ! Constructor.
       INTERFACE listType
          MODULE PROCEDURE NEWLIST
       END INTERFACE listType

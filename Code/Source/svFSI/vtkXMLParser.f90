@@ -2085,8 +2085,14 @@
          real(RK), intent(out) :: x(:,:)
          integer(IK) :: iatt,i,j,k,l,nd,nn
 
+         print *, " "
+         print *, "========== vtkXMLlib.getVTK_pointCoords ========="
+
          nd = size(x,1)
          nn = size(x,2)
+         print *, "[vtkXMLlib.getVTK_pointCoords] nd: ", nd
+         print *, "[vtkXMLlib.getVTK_pointCoords] nn: ", nn
+
          if ( vtk%pcElms%nPoints.eq.nn ) then   ! nPoints !
             iatt = 3
          else
@@ -2126,6 +2132,8 @@
             end do
          end do
 
+         print*,"========== Done vtkXMLlib.getVTK_pointCoords ========="
+         print *, " "
          end subroutine getVTK_pointCoords
 
          !==========================================

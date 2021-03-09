@@ -36,120 +36,225 @@
 !
 !--------------------------------------------------------------------
 
-      SUBROUTINE READVTU(lM, fName)
+      !---------
+      ! READVTU
+      !---------
+      ! Read in a VTK .vtu file and store its data into a Fortran mshType mesh.
+      !
+      ! Mesh variables set
+      !   mesh % gnNo - number of nodes
+      !   mesh % gnEl - number of elements
+      !   mesh % eNoN - number of noders per element
+      !   mesh % x - node coordinates
+      !   mesh % gIEN - element connectivity
+      !
+      !
+      SUBROUTINE READVTU(mesh, fName)
       USE COMMOD
       USE LISTMOD
       USE ALLFUN
       USE vtkXMLMod
+
       IMPLICIT NONE
-      TYPE(mshType), INTENT(INOUT) :: lM
+
+      TYPE(mshType), INTENT(INOUT) :: mesh
+
       CHARACTER(LEN=stdL) :: fName
 
       INTEGER(KIND=IKIND) :: iStat
+
       TYPE(vtkXMLType) :: vtu
 
       REAL(KIND=RKIND), ALLOCATABLE :: tmpX(:,:)
 
+      integer num_nodes
+      integer num_elems
+      integer num_nodes_per_elem
+
+      print *, " "
+      print *, "==================== READVTU ==================="
+
       iStat = 0
       std = " <VTK XML Parser> Loading file <"//TRIM(fName)//">"
+
+      ! Read vtu file.
       CALL loadVTK(vtu, fName, iStat)
       IF (iStat .LT. 0) err = "VTU file read error (init)"
 
-      CALL getVTK_numPoints(vtu, lM%gnNo, iStat)
+      ! Set input mesh data node and element counts.
+      !
+      CALL getVTK_numPoints(vtu, mesh % gnNo, iStat)
       IF (iStat .LT. 0) err = "VTU file read error (num points)"
+      num_nodes = mesh % gnNo
+      print *, "[READVTU] Number of nodes: ", num_nodes 
 
-      CALL getVTK_numElems(vtu, lM%gnEl, iStat)
+      CALL getVTK_numElems(vtu, mesh % gnEl, iStat)
       IF (iStat .LT. 0) err = "VTU file read error (num cells)"
+      num_elems = mesh % gnEl
+      print *, "[READVTU] Number of elements: ", num_elems
 
-      CALL getVTK_nodesPerElem(vtu, lM%eNoN, iStat)
+      CALL getVTK_nodesPerElem(vtu, mesh % eNoN, iStat)
+      num_nodes_per_elem = mesh % eNoN
       IF (iStat .LT. 0) err = "VTU file read error (nodes per cell)"
 
-      ALLOCATE(lM%x(nsd,lM%gnNo),tmpX(maxNSD,lM%gnNo))
+      ! Store mesh coordinates.
+      !
+      ! Copy data from 'vtu' to 'tmpX' to 'mesh.x'.
+      !
+      ALLOCATE(mesh % x(nsd, mesh % gnNo))
+      ALLOCATE(tmpX(maxNSD, mesh % gnNo))
+
       CALL getVTK_pointCoords(vtu, tmpX, iStat)
       IF (iStat .LT. 0) err = "VTU file read error (coords)"
-      lM%x(:,:) = tmpX(1:nsd,:)
+      mesh % x(:,:) = tmpX(1:nsd,:)
       DEALLOCATE(tmpX)
 
-      ALLOCATE(lM%gIEN(lM%eNoN,lM%gnEl))
-      CALL getVTK_elemIEN(vtu, lM%gIEN, iStat)
+      ! Store mesh element connectivity. 
+      !
+      ! Assume that the connectivity is zero-based.
+      !
+      ALLOCATE(mesh % gIEN(num_nodes_per_elem, num_elems))
+      CALL getVTK_elemIEN(vtu, mesh % gIEN, iStat)
       IF (iStat .LT. 0) err = "VTU file read error (ien)"
-      lM%gIEN = lM%gIEN + 1
 
+      ! Add 1 to all node ids.
+      mesh % gIEN = mesh % gIEN + 1
+
+      ! Free memory.
       CALL flushVTK(vtu)
+
+      print *, "==================== Done READVTU ==================="
+      print *, " "
 
       RETURN
       END SUBROUTINE READVTU
 !--------------------------------------------------------------------
-      SUBROUTINE READVTP(lFa, fName)
+
+      !---------
+      ! READVTP
+      !---------
+      !
+      ! Sets data for face_mesh
+      !   face_mesh % nNo - number of nodes
+      !   face_mesh % nEl - number of elements
+      !   face_mesh % x(nsd, num_nodes)
+      !   face_mesh % IEN(nodes_per_elem, num_elems) - element connectivity 
+      !   face_mesh % gE(num_elems) - element IDs
+      !   face_mesh % gebc(nodes_per_elem+1, num_elems) - essential boundary conditions array (gE + gIEN)
+      !
+      SUBROUTINE READVTP(face_mesh, fName)
       USE COMMOD
       USE LISTMOD
       USE ALLFUN
       USE vtkXMLMod
       IMPLICIT NONE
-      TYPE(faceType), INTENT(INOUT) :: lFa
+      TYPE(faceType), INTENT(INOUT) :: face_mesh
       CHARACTER(LEN=stdL) :: fName
 
       INTEGER(KIND=IKIND) :: iStat, a, e, Ac
       TYPE(vtkXMLType) :: vtp
 
       REAL(KIND=RKIND), ALLOCATABLE :: tmpX(:,:)
+ 
+      integer num_nodes, num_elems, nodes_per_elem
+      integer min_node_id
+
+      print *, " "
+      print *, "==================== READVTP ==================="
+      print *, "[READVTP] fName: ", trim(fName)
 
       iStat = 0
       std = " <VTK XML Parser> Loading file <"//TRIM(fName)//">"
       CALL loadVTK(vtp, fName, iStat)
       IF (iStat .LT. 0) err = "VTP file read error (init)"
 
-      CALL getVTK_numPoints(vtp, lFa%nNo, iStat)
+      CALL getVTK_numPoints(vtp, face_mesh % nNo, iStat)
       IF (iStat .LT. 0) err = "VTP file read error (num points)"
+      num_nodes = face_mesh % nNo
+      print *, "[READVTP] num_nodes: ", num_nodes
 
-      CALL getVTK_numElems(vtp, lFa%nEl, iStat)
+      CALL getVTK_numElems(vtp, face_mesh % nEl, iStat)
       IF (iStat .LT. 0) err = "VTP file read error (num cells)"
+      num_elems = face_mesh % nEl
+      print *, "[READVTP] num_elems: ", num_elems
 
-      CALL getVTK_nodesPerElem(vtp, lFa%eNoN, iStat)
+      CALL getVTK_nodesPerElem(vtp, face_mesh % eNoN, iStat)
       IF (iStat .LT. 0) err = "VTP file read error (nodes per cell)"
+      nodes_per_elem = face_mesh % eNoN
+      print *, "[READVTP] nodes_per_elem: ", nodes_per_elem
 
-      ALLOCATE(lFa%x(nsd,lFa%nNo), tmpX(maxNSD,lFa%nNo))
+      ALLOCATE(face_mesh % x(nsd, num_nodes))
+      ALLOCATE(tmpX(maxNSD, num_nodes))
+
       CALL getVTK_pointCoords(vtp, tmpX, iStat)
       IF (iStat .LT. 0) err = "VTP file read error (coords)"
-      lFa%x(:,:) = tmpX(1:nsd,:)
+      face_mesh % x(:,:) = tmpX(1:nsd,:)
       DEALLOCATE(tmpX)
 
-      ALLOCATE(lFa%IEN(lFa%eNoN,lFa%nEl))
-      CALL getVTK_elemIEN(vtp, lFa%IEN, iStat)
+      ALLOCATE(face_mesh%IEN(nodes_per_elem, num_elems))
+      CALL getVTK_elemIEN(vtp, face_mesh%IEN, iStat)
       IF (iStat .LT. 0) err = "VTP file read error (ien)"
 
-      ALLOCATE(lFa%gN(lFa%nNo))
-      CALL getVTK_pointData(vtp, "GlobalNodeID", lFa%gN, iStat)
+      ! Read node IDs.
+      !
+      ! IDs from SV are zero-based so add 1 to them.
+      !
+      ALLOCATE(face_mesh % gN(num_nodes))
+      CALL getVTK_pointData(vtp, "GlobalNodeID", face_mesh % gN, iStat)
       IF (iStat .LT. 0) THEN
-         DEALLOCATE(lFa%gN)
+         DEALLOCATE(face_mesh%gN)
          wrn = " Could not find GlobalNodeID in the vtp file"
       ELSE
-         DO e=1, lFa%nEl
-            DO a=1, lFa%eNoN
-               Ac = lFa%IEN(a,e)+1
-               Ac = lFa%gN(Ac)
-               lFa%IEN(a,e) = Ac
+         min_node_id = 1e6
+         DO e = 1, num_elems 
+            DO a = 1, nodes_per_elem 
+               if (face_mesh % IEN(a,e) .lt. min_node_id) then
+                 min_node_id = face_mesh % IEN(a,e)
+               end if
+               Ac = face_mesh % IEN(a,e)+1
+               Ac = face_mesh % gN(Ac)
+               face_mesh % IEN(a,e) = Ac
             END DO
          END DO
       END IF
+      print *, "[READVTP] min_node_id: ", min_node_id
 
-      ALLOCATE(lFa%gE(lFa%nEl))
-      CALL getVTK_elemData(vtp, "GlobalElementID", lFa%gE, iStat)
+      ! Read element IDs. 
+      !
+      ALLOCATE(face_mesh % gE(num_elems))
+      CALL getVTK_elemData(vtp, "GlobalElementID", face_mesh%gE, iStat)
+
+      ! Create essential boundary conditions array.
+      !
+      ! Note: the gE(:) array seems to just duplicate element 
+      ! connectivity and IDs.
+      !
       IF (iStat .LT. 0) THEN
-         DEALLOCATE(lFa%gE)
+         DEALLOCATE(face_mesh % gE)
          wrn = " Could not find GlobalElementID in the vtp file"
       ELSE
-         lFa%gnEl = lFa%nEl
-         ALLOCATE(lFa%gebc(1+lFa%eNoN,lFa%gnEl))
-         lFa%gebc(1,:) = lFa%gE(:)
-         lFa%gebc(2:1+lFa%eNoN,:) = lFa%IEN(:,:)
+         face_mesh % gnEl = face_mesh % nEl
+         ALLOCATE(face_mesh % gebc(nodes_per_elem+1, num_elems))
+         face_mesh % gebc(1,:) = face_mesh % gE(:)
+         face_mesh % gebc(2:nodes_per_elem+1,:) = face_mesh % IEN(:,:)
       END IF
 
       CALL flushVTK(vtp)
 
+      print *, "[READVTP] IEN : ", 
+     1  ubound(face_mesh % IEN,1), ubound(face_mesh % IEN,2)
+
+      print *, "[READVTP] face_mesh % gebc bounds: ", 
+     1  ubound(face_mesh % gebc,1), ubound(face_mesh % gebc,2)
+
+      print *, "==================== Done READVTP ==================="
+      print *, " "
+
       RETURN
       END SUBROUTINE READVTP
+
 !--------------------------------------------------------------------
+
       SUBROUTINE READVTUS(lA, lY, lD, fName)
       USE COMMOD
       USE LISTMOD

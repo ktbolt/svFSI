@@ -1,3 +1,6 @@
+
+set(CMAKE_CXX_STANDARD 11)
+
 include_directories(${MPI_C_INCLUDE_PATH})
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
@@ -8,13 +11,35 @@ else()
   # may need to reset for intel compiler or others
 endif()
 
+# Including VTK produces warnings when compiling Fortran code.
+#
+#   -iframe is valid for C/C++/ObjC/ObjC++ but not for Fortran
+#
+find_package(VTK REQUIRED)
+#include(${VTK_USE_FILE})
+
 set(lib ${SV_LIB_SVFSI_CINTERFACE_NAME})
 
-set(CSRCS interface.cpp)
+set(CSRCS 
+  interface.cpp
+  simulation_wrap.cpp
+  element_utils.h element_utils.cpp
+  Element.h Element.cpp
+  ElementTet4.h ElementTet4.cpp
+  ElementTri3.h ElementTri3.cpp
+  Face.h Face.cpp
+  Mesh.h Mesh.cpp
+  Nodes.h Nodes.cpp
+  Parameters.h Parameters.cpp
+  Physics.h Physics.cpp
+  Simulation.h Simulation.cpp
+  tinyxml2.h tinyxml2.cpp
+  vtk_utils.h vtk_utils.cpp
+)
 
 add_library(${lib} ${SV_LIBRARY_TYPE} ${CSRCS})
 
-target_link_libraries(${lib} ${MPI_LIBRARY} ${MPI_Fortran_LIBRARIES})
+target_link_libraries(${lib} ${MPI_LIBRARY} ${MPI_Fortran_LIBRARIES} ${VTK_LIBRARIES})
 
 # extra MPI libraries only if there are not set to NOT_FOUND or other null 
 if(SV_MPI_EXTRA_LIBRARY)

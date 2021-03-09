@@ -156,11 +156,15 @@ set(FSRCS TYPEMOD.f
          USTRUCT.f
          VTKXML.f)
 
-set(F90SRCS vtkComMod.f90
-            vtkTypeParams.f90
-            vtkXMLParser.f90
-            vtkLegacyParser.f90
-            c_interface_mod.f90)
+set(F90SRCS 
+  vtkComMod.f90
+  vtkTypeParams.f90
+  vtkXMLParser.f90
+  vtkLegacyParser.f90
+  c_interface_mod.f90
+  compare_cpp_fortran_mod.f90 
+  simulation_interface_mod.f90
+)
 
 set(CSRCS SPLIT.c
           vtkZpipe.c)

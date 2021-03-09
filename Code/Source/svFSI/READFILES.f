@@ -36,6 +36,22 @@
 !
 !--------------------------------------------------------------------
 
+      !-----------
+      ! READFILES
+      !-----------
+      ! Read in solver input file.
+      !
+      ! The input file is read into TYPE(listType) :: list. Parameter values are then
+      ! retirved from 'list' using list%get() functions
+      !
+      !    lPtr => list%get(nsd,"Number of spatial dimensions", 1, ll=2, ul=3)
+      !
+      !      returns the value for "Number of spatial dimensions" paramter in 'nsd'.
+      !      A new list is returned in TYPE(listType), POINTER :: lPtr which points
+      !      to the sub-list within the list if it exists.
+      !
+      ! Varibles in the 'COMMOD' module are set from the parameters values read in.
+      !
       SUBROUTINE READFILES
       USE COMMOD
       USE ALLFUN
@@ -53,6 +69,8 @@
       TYPE(listType), POINTER :: lPtr
       TYPE(fileType) :: fTmp
       SAVE mfsIn, roInf
+
+      print *, "==================== READFILES ==================="
 
       IF (.NOT.resetSim) THEN
          ctmp = " P#"//STR(cm%id())
@@ -111,6 +129,10 @@
          END IF
       END IF
 
+      ! Create a listType for reading from the solver input file.
+      !
+      ! io = TYPE(ioType), POINTER :: io
+      !
       list = listType(mfsIn,io)
 
       IF (.NOT.resetSim) THEN
@@ -163,9 +185,10 @@
          IF (ASSOCIATED(lPtr)) iniFilePath = fTmp%fname
 
          lPtr => list%get(nsd,"Number of spatial dimensions",
-     2      1,ll=2,ul=3)
+     2      ind=1,ll=2,ul=3)
          nstd = 6
          IF (nsd .EQ. 2) nstd = 3
+         print *, "[READFILES] nsd: ", nsd 
 
          lPtr => list%get(nTs,"Number of time steps",1,ll=1)
          lPtr => list%get(startTS,"Starting time step",ll=0)
@@ -196,6 +219,8 @@
          lPtr => list%get(stFileName,"Restart file name")
          stFileName = TRIM(appPath)//stFileName
 
+         print *, "[READFILES] stFileName: ", stFileName 
+
          stFileIncr = saveIncr
          lPtr => list%get(stFileIncr,
      2      "Increment in saving restart files",ll=0)
@@ -209,8 +234,7 @@
          END IF
       END IF ! resetSim
 
-!--------------------------------------------------------------------
-!     Reading the mesh
+      ! Read in the mesh. 
       CALL READMSH(list)
 
 !     Reading immersed boundary mesh data

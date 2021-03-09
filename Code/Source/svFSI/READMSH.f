@@ -36,11 +36,21 @@
 !
 !--------------------------------------------------------------------
 
-!     The higher level routine that calls other routines
+      !---------
+      ! READMSH
+      !---------
+      !
+      ! Modifies:
+      !
+      !   COMMOD 
+      !     TYPE(mshType), ALLOCATABLE :: msh(:)       ! List of meshes
+      !     INTEGER(KIND=IKIND) nMsh                   ! Number of meshes
+      !
       SUBROUTINE READMSH(list)
       USE COMMOD
       USE LISTMOD
       USE ALLFUN
+
       IMPLICIT NONE
       TYPE(listType), INTENT(INOUT) :: list
 
@@ -55,45 +65,69 @@
       TYPE(fileType) :: fTmp
 
       LOGICAL, ALLOCATABLE :: ichk(:)
-      REAL(KIND=RKIND), ALLOCATABLE :: tmpX(:,:), gX(:,:), tmpA(:,:),
+
+      ! gX is used to scale the mesh.
+      REAL(KIND=RKIND), ALLOCATABLE :: gX(:,:)
+
+      REAL(KIND=RKIND), ALLOCATABLE :: tmpX(:,:), tmpA(:,:),
      2   tmpY(:,:), tmpD(:,:)
+
+      print *, "==================== READMSH ==================="
 
       minX  =  HUGE(minX)
       maxX  = -HUGE(minX)
+
       IF (.NOT.resetSim) THEN
          nMsh  = list%srch("Add mesh",ll=1)
+         print *, "[READMSH] Number of meshes (nMsh): ", nMsh
          std = " Number of meshes: "//nMsh
-         ALLOCATE (msh(nMsh), gX(0,0))
+         ALLOCATE (msh(nMsh))
+         ALLOCATE (gX(0,0))
 
+         print *, "[READMSH] Process meshes ... "
          gtnNo = 0
-         DO iM=1, nMsh
+         DO iM = 1, nMsh
+            print *, "[READMSH] ---------- Mesh iM ", iM, " ---------"
             lPM => list%get(msh(iM)%name,"Add mesh",iM)
             lPtr => lPM%get(msh(iM)%lShl,"Set mesh as shell")
             lPtr => lPM%get(msh(iM)%lFib,"Set mesh as fibers")
+            print *, "[READMSH] Mesh name: ", msh(iM) % name 
+            print *, "[READMSH] Mesh type: ", msh(iM) % eType
+            print *, "[READMSH] Read mesh ", TRIM(msh(iM) % name)
 
-            std  = " Reading mesh <"//CLR(TRIM(msh(iM)%name))//">"
+            !std  = " Reading mesh <"//CLR(TRIM(msh(iM)%name))//">"
             CALL READSV(lPM, msh(iM))
+
+            ! [TODO] What is going on here?
             IF (msh(iM)%eType .EQ. eType_NA) THEN
                CALL READCCNE(lPM, msh(iM))
+               print *, "[READMSH] READCCNE ", msh(iM)%eType
             END IF
             IF (msh(iM)%eType .EQ. eType_NA) THEN
                CALL READNRB(lPM, msh(iM))
+               print *, "[READMSH] READNRB ", msh(iM)%eType
             END IF
             IF (msh(iM)%eType .EQ. eType_NA) THEN
                CALL READGAMBIT(lPM, msh(iM))
+               print *, "[READMSH] READGAMBIT ", msh(iM)%eType
             END IF
             IF (msh(iM)%eType .EQ. eType_NA) THEN
                err = "Failed to identify format of the mesh"
             END IF
 
             IF (nMsh .LE. 3) THEN
-               std = " Number of nodes: "//msh(iM)%gnNo
-               std = " Number of elements: "//msh(iM)%gnEl
+               !std = " Number of nodes: "//msh(iM)%gnNo
+               !std = " Number of elements: "//msh(iM)%gnEl
+               print *, "[READMSH] Number of nodes: ", msh(iM) % gnNo 
+               print *, "[READMSH] Number of elements: ", msh(iM) % gnEl
             END IF
-            ALLOCATE (msh(iM)%gN(msh(iM)%gnNo))
-            msh(iM)%gN = 0
 
-!     Making sure face names are unique
+            ! Allocate and set mesh nodes to 0.
+            ALLOCATE (msh(iM) % gN(msh(iM) % gnNo))
+            msh(iM) % gN = 0
+
+            ! Check that face names are unique.
+            print *, "[READMSH] Check for unique face names ... "
             DO iFa=1, msh(iM)%nFa
                msh(iM)%fa(iFa)%iM = iM
                ctmp = msh(iM)%fa(iFa)%name
@@ -105,12 +139,18 @@
                      END IF
                   END DO
                END DO
+               print *, "[READMSH]   Face name: ", trim(ctmp)
             END DO
 
-!     To scale the mesh, while attaching x to gX
-            msh(iM)%scF = 1._RKIND
+            ! Scale the mesh and add mesh coords (x) to 
+            ! global coods (gX).
+            !
+            print *, "[READMSH] Add mesh nodes to global nodes ... "
+            msh(iM) % scF = 1._RKIND
             lPtr => lPM%get(msh(iM)%scF,"Mesh scale factor",lb=0._RKIND)
-            a = gtnNo + msh(iM)%gnNo
+            a = gtnNo + msh(iM) % gnNo
+            print *, "[READMSH] a: ", a
+
             IF (iM .GT. 1) THEN
                ALLOCATE(tmpX(nsd,gtnNo))
                tmpX = gX
@@ -122,22 +162,30 @@
                DEALLOCATE(gX)
                ALLOCATE(gX(nsd,a))
             END IF
+
+            print *, "[READMSH] gX array bounds: ",ubound(gX,1),
+     2         ubound(gX,2)         
+
             gX(:,gtnNo+1:a) = msh(iM)%x * msh(iM)%scF
-            gtnNo           = a
-            DEALLOCATE(msh(iM)%x)
+            gtnNo = a
+            DEALLOCATE(msh(iM) % x)
          END DO
+
          ALLOCATE(x(nsd,gtnNo))
          x = gX
 
-!        Checks for shell elements
-         DO iM=1, nMsh
-            IF (msh(iM)%lShl) THEN
-               IF (msh(iM)%eType.NE.eType_NRB .AND.
-     2             msh(iM)%eType.NE.eType_TRI3) THEN
+         ! Check for shell elements and NURB patches.
+         !
+         print *, "[READMSH] Check for shells and NURBS ... "
+         DO iM = 1, nMsh
+            IF (msh(iM) % lShl) THEN
+               IF (msh(iM) % eType .NE. eType_NRB .AND.
+     2             msh(iM) % eType .NE. eType_TRI3) THEN
                   err = "Shell elements can be either triangles "//
      2               "or C1-NURBS"
                END IF
-               IF (msh(iM)%eType .EQ. eType_NRB) THEN
+
+               IF (msh(iM) % eType .EQ. eType_NRB) THEN
                   DO i=1, nsd-1
                      IF (msh(iM)%bs(i)%p .LE. 1) err =
      2                  "NURBS for shell elements should be p > 1"
@@ -150,7 +198,9 @@ c               END IF
             END IF
          END DO
 
-!        Checks for fiber mesh
+         ! Check for fiber mesh.
+         !
+         print *, "[READMSH] Check for fiber mesh ... "
          DO iM=1, nMsh
             IF (msh(iM)%lFib) THEN
                IF (msh(iM)%eType.NE.eType_LIN1 .AND.
@@ -458,6 +508,9 @@ c               END IF
             END SELECT
          END IF
       END IF
+
+      print *, "==================== Done READMSH ==================="
+      print *, " "
 
       RETURN
       END SUBROUTINE READMSH
@@ -1022,7 +1075,12 @@ c               END IF
       RETURN
       END SUBROUTINE CHECKIEN
 !####################################################################
-!     Making sure all the faces contain in range values
+
+      !---------
+      ! CALCNBC
+      !---------
+      ! Making sure all the faces contain in range values
+      !
       SUBROUTINE CALCNBC(lM, lFa)
       USE COMMOD
       USE ALLFUN
@@ -1033,6 +1091,9 @@ c               END IF
       INTEGER(KIND=IKIND) Ac, e, Ec, a
 
       INTEGER(KIND=IKIND), ALLOCATABLE :: incNd(:)
+
+      print *, "==================== CALCNBC ==================="
+
 
 !     Finding the nodes that belongs to this face and counting the
 !     number of the nodes
@@ -1072,9 +1133,14 @@ c               END IF
          END IF
       END DO
 
+      print *, "==================== Done CALCNBC ==================="
+      print *, " "
+
       RETURN
       END SUBROUTINE CALCNBC
+
 !####################################################################
+
       SUBROUTINE LOADVARINI(list)
       USE COMMOD
       USE LISTMOD

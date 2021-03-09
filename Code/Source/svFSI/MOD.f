@@ -40,6 +40,8 @@
       USE CHNLMOD
       USE CEPMOD
 
+      use simulation_interface
+
       INCLUDE "FSILS.h"
 
 !--------------------------------------------------------------------
@@ -47,64 +49,92 @@
       INCLUDE "CONSTS.f"
 
 !--------------------------------------------------------------------
-!     Here comes subTypes definitions later used in other derived types
-!     Function spaces (basis) type
+
+!--------------------------------------------------------------------
+!                           S u b T y p e s 
+!--------------------------------------------------------------------
+! subTypes definitions later used in other derived types.
+
+      !--------
+      ! fsType
+      !--------
+      ! Function spaces (basis) type
+      ! 
       TYPE fsType
-!        Whether the basis function is linear
+
+         ! Whether the basis function is linear
          LOGICAL lShpF
-!        Element type
+
+         ! Element type
          INTEGER(KIND=IKIND) :: eType = eType_NA
-!        Number of basis functions, typically equals msh%eNoN
+
+         ! Number of basis functions, typically equals msh%eNoN
          INTEGER(KIND=IKIND) eNoN
-!        Number of Gauss points for integration
+
+         ! Number of Gauss points for integration
          INTEGER(KIND=IKIND) nG
-!        Gauss weights
+
+         ! Gauss weights
          REAL(KIND=RKIND), ALLOCATABLE :: w(:)
-!        Gauss integration points in parametric space
+
+         ! Gauss integration points in parametric space
          REAL(KIND=RKIND), ALLOCATABLE :: xi(:,:)
-!        Bounds on Gauss integration points in parametric space
+
+         ! Bounds on Gauss integration points in parametric space
          REAL(KIND=RKIND), ALLOCATABLE :: xib(:,:)
-!        Parent shape function
+
+         ! Parent shape function
          REAL(KIND=RKIND), ALLOCATABLE :: N(:,:)
-!        Bounds on shape functions
+
+         ! Bounds on shape functions
          REAL(KIND=RKIND), ALLOCATABLE :: Nb(:,:)
-!        Parent shape functions gradient
+
+         ! Parent shape functions gradient
          REAL(KIND=RKIND), ALLOCATABLE :: Nx(:,:,:)
-!        Second derivatives of shape functions - used for shells & IGA
+
+         ! Second derivatives of shape functions - used for shells & IGA
          REAL(KIND=RKIND), ALLOCATABLE :: Nxx(:,:,:)
       END TYPE fsType
 
-!     This is the container for B-Splines
+      !--------
+      ! bsType
+      !--------
+      ! This is the container for B-Splines
       TYPE bsType
-!        Number of knots (p + nNo + 1)
+         ! Number of knots (p + nNo + 1)
          INTEGER(KIND=IKIND) :: n = 0
-!        Number of Gauss points for integration
+         ! Number of Gauss points for integration
          INTEGER(KIND=IKIND) nG
-!        Number of knot spans (element)
+         ! Number of knot spans (element)
          INTEGER(KIND=IKIND) :: nEl = 0
-!        Number of control points (nodes)
+         ! Number of control points (nodes)
          INTEGER(KIND=IKIND) :: nNo = 0
-!        Number of sample points in each element (for output)
+         ! Number of sample points in each element (for output)
          INTEGER(KIND=IKIND) nSl
-!        The order
+         ! The order
          INTEGER(KIND=IKIND) p
-!        Knot vector
+         ! Knot vector
          REAL(KIND=RKIND), ALLOCATABLE :: xi(:)
       END TYPE bsType
 
+      !-------------
+      ! stModelType
+      !-------------
+      ! Solid material constitutive model. 
+      !
       TYPE stModelType
-!        Type of constitutive model (volumetric) for struct/FSI
+         ! Type of constitutive model (volumetric) for struct/FSI
          INTEGER(KIND=IKIND) :: volType = stVol_NA
-!        Penalty parameter
+         ! Penalty parameter
          REAL(KIND=RKIND) :: Kpen = 0._RKIND
-!        Type of constitutive model (isochoric) for struct/FSI
+         ! Type of constitutive model (isochoric) for struct/FSI
          INTEGER(KIND=IKIND) :: isoType = stIso_NA
-!        Parameters specific to the constitutive model (isochoric)
-!        NeoHookean model (C10 = mu/2)
+         ! Parameters specific to the constitutive model (isochoric)
+         ! NeoHookean model (C10 = mu/2)
          REAL(KIND=RKIND) :: C10 = 0._RKIND
-!        Mooney-Rivlin model (C10, C01)
+         ! Mooney-Rivlin model (C10, C01)
          REAL(KIND=RKIND) :: C01 = 0._RKIND
-!        Holzapfel model(a, b, aff, bff, ass, bss, afs, bfs, kap)
+         ! Holzapfel model(a, b, aff, bff, ass, bss, afs, bfs, kap)
          REAL(KIND=RKIND) :: a   = 0._RKIND
          REAL(KIND=RKIND) :: b   = 0._RKIND
          REAL(KIND=RKIND) :: aff = 0._RKIND
@@ -113,869 +143,1161 @@
          REAL(KIND=RKIND) :: bss = 0._RKIND
          REAL(KIND=RKIND) :: afs = 0._RKIND
          REAL(KIND=RKIND) :: bfs = 0._RKIND
-!        Collagen fiber dispersion parameter (Holzapfel model)
+         ! Collagen fiber dispersion parameter (Holzapfel model)
          REAL(KIND=RKIND) :: kap = 0._RKIND
       END TYPE stModelType
 
+      !---------------
+      ! viscModelType
+      !---------------
+      ! Fluid constitutive model. 
+      !
       TYPE viscModelType
-!        Type of constitutive model for fluid viscosity
+         ! Type of constitutive model for fluid viscosity
          INTEGER(KIND=IKIND) :: viscType = viscType_NA
-!        Limiting zero shear-rate viscosity value
+
+         ! Limiting zero shear-rate viscosity value
          REAL(KIND=RKIND) :: mu_o = 0._RKIND
-!        Limiting high shear-rate viscosity (asymptotic) value
+
+         ! Limiting high shear-rate viscosity (asymptotic) value
          REAL(KIND=RKIND) :: mu_i = 0._RKIND
-!        Strain-rate tensor multiplier
+
+         ! Strain-rate tensor multiplier
          REAL(KIND=RKIND) :: lam = 0._RKIND
-!        Strain-rate tensor exponent
+
+         ! Strain-rate tensor exponent
          REAL(KIND=RKIND) :: a = 0._RKIND
-!        Power-law exponent
+
+         ! Power-law exponent
          REAL(KIND=RKIND) :: n = 0._RKIND
       END TYPE viscModelType
 
+      !---------
+      ! rcrType
+      !---------
+      ! RCR boundary condition.
+      !
       TYPE rcrType
-!        Proximal resistance
+         ! Proximal resistance
          REAL(KIND=RKIND) :: Rp = 0._RKIND
-!        Capacitance
+         ! Capacitance
          REAL(KIND=RKIND) :: C  = 0._RKIND
-!        Distance resistance
+         ! Distance resistance
          REAL(KIND=RKIND) :: Rd = 0._RKIND
-!        Distal pressure
+         ! Distal pressure
          REAL(KIND=RKIND) :: Pd = 0._RKIND
       END TYPE rcrType
 
-!     Fourier coefficients that are used to specify unsteady BCs
+      !--------
+      ! fcType
+      !--------
+      ! Fourier coefficients that are used to specify unsteady BCs
+      !
       TYPE fcType
-!        If this is a ramp function
+         ! If this is a ramp function
          LOGICAL lrmp
-!        Number of Fourier coefficient
+         ! Number of Fourier coefficient
          INTEGER(KIND=IKIND) :: n = 0
-!        No. of dimensions (scalar or vector)
+         ! No. of dimensions (scalar or vector)
          INTEGER(KIND=IKIND) :: d
-!        Initial value
+         ! Initial value
          REAL(KIND=RKIND), ALLOCATABLE :: qi(:)
-!        Time derivative of linear part
+         ! Time derivative of linear part
          REAL(KIND=RKIND), ALLOCATABLE :: qs(:)
-!        Period
+         ! Period
          REAL(KIND=RKIND) T
-!        Initial time
+         ! Initial time
          REAL(KIND=RKIND) ti
-!        Imaginary part of coefficint
+         ! Imaginary part of coefficint
          REAL(KIND=RKIND), ALLOCATABLE :: i(:,:)
-!        Real part of coefficint
+         ! Real part of coefficint
          REAL(KIND=RKIND), ALLOCATABLE :: r(:,:)
       END TYPE fcType
 
-!     Moving boundary data structure (used for general BC)
+      !--------
+      ! MBType
+      !--------
+      ! Moving boundary data structure (used for general BC)
       TYPE MBType
-!     Degrees of freedom of d(:,.,.)
+         ! Degrees of freedom of d(:,.,.)
          INTEGER(KIND=IKIND) dof
-!     Number of time points to be read
+         ! Number of time points to be read
          INTEGER(KIND=IKIND) :: nTP = 0
-!     The period of data
+         ! The period of data
          REAL(KIND=RKIND) period
-!     Time points
+         ! Time points
          REAL(KIND=RKIND), ALLOCATABLE :: t(:)
-!     Displacements at each direction, location, and time point
+         ! Displacements at each direction, location, and time point
          REAL(KIND=RKIND), ALLOCATABLE :: d(:,:,:)
       END TYPE MBType
 
-!     Boundary condition data type
+      !--------
+      ! bcType
+      !--------
+      ! Boundary condition data type
+      !
       TYPE bcType
-!        Strong/Weak application of Dirichlet BC
+         ! Strong/Weak application of Dirichlet BC
          LOGICAL :: weakDir
-!        Whether load vector changes with deformation
-!        (Neu - struct/ustruct only)
+         ! Whether load vector changes with deformation
+         ! (Neu - struct/ustruct only)
          LOGICAL :: flwP = .FALSE.
-!        Robin: apply only in normal direction
+         ! Robin: apply only in normal direction
          LOGICAL :: rbnN = .FALSE.
-!        Pre/Res/Flat/Para... boundary types
+         ! Pre/Res/Flat/Para... boundary types
          INTEGER(KIND=IKIND) :: bType = 0
-!        Pointer to coupledBC%face
+         ! Pointer to coupledBC%face
          INTEGER(KIND=IKIND) :: cplBCptr = 0
-!        The face index that corresponds to this BC
+         ! The face index that corresponds to this BC
          INTEGER(KIND=IKIND) iFa
-!        The mesh index that corresponds to this BC
+         ! The mesh index that corresponds to this BC
          INTEGER(KIND=IKIND) iM
-!        Pointer to FSILS%bc
+         ! Pointer to FSILS%bc
          INTEGER(KIND=IKIND) lsPtr
-!        Undeforming Neu BC master-slave node parameters.
+         ! Undeforming Neu BC master-slave node parameters.
          INTEGER(KIND=IKIND) masN
-!        Defined steady value
+         ! Defined steady value
          REAL(KIND=RKIND) :: g = 0._RKIND
-!        Neu: defined resistance
+         ! Neu: defined resistance
          REAL(KIND=RKIND) :: r = 0._RKIND
-!        Robin: stiffness
+         ! Robin: stiffness
          REAL(KIND=RKIND) :: k = 0._RKIND
-!        Robin: damping
+         ! Robin: damping
          REAL(KIND=RKIND) :: c = 0._RKIND
-!        Penalty parameters for weakly applied Dir BC
+         ! Penalty parameters for weakly applied Dir BC
          REAL(KIND=RKIND) :: tauB(2) = 0._RKIND
-!        Direction vector for imposing the BC
+         ! Direction vector for imposing the BC
          INTEGER(KIND=IKIND), ALLOCATABLE :: eDrn(:)
-!        Defined steady vector (traction)
+         ! Defined steady vector (traction)
          REAL(KIND=RKIND), ALLOCATABLE :: h(:)
-!        Spatial dependant BC (profile data)
+         ! Spatial dependant BC (profile data)
          REAL(KIND=RKIND), ALLOCATABLE :: gx(:)
-!        General BC (unsteady and UD combination)
+         ! General BC (unsteady and UD combination)
          TYPE(MBType), ALLOCATABLE :: gm
-!        Time dependant BC (Unsteady imposed value)
+         ! Time dependant BC (Unsteady imposed value)
          TYPE(fcType), ALLOCATABLE :: gt
-!        Neu: RCR
+         ! Neu: RCR
          TYPE(rcrType) :: RCR
       END TYPE bcType
 
-!     Body force data structure type
+      !--------
+      ! bfType
+      !--------
+      ! Body force data structure type
+      !
       TYPE bfType
-!        Type of body force applied
+         ! Type of body force applied
          INTEGER(KIND=IKIND) :: bType = 0
-!        No. of dimensions (1 or nsd)
+         ! No. of dimensions (1 or nsd)
          INTEGER(KIND=IKIND) :: dof
-!        Mesh index corresponding to this body force
+         ! Mesh index corresponding to this body force
          INTEGER(KIND=IKIND) :: iM
-!        Steady value
+         ! Steady value
          REAL(KIND=RKIND), ALLOCATABLE :: b(:)
-!        Steady but spatially dependant
+         ! Steady but spatially dependant
          REAL(KIND=RKIND), ALLOCATABLE :: bx(:,:)
-!        Time dependant (unsteady imposed value)
+         ! Time dependant (unsteady imposed value)
          TYPE(fcType), ALLOCATABLE :: bt
-!        General (unsteady and spatially dependent combination)
+         ! General (unsteady and spatially dependent combination)
          TYPE(MBType), ALLOCATABLE :: bm
       END TYPE bfType
 
-!     Domain type is to keep track with element belong to which domain
-!     and also different hysical quantities
+      !----------
+      ! dmnType
+      !----------
+      ! Domain type is to keep track with element belong to which domain
+      ! and also different hysical quantities
+      ! 
       TYPE dmnType
-!        The domain ID. Default includes entire domain
+         ! The domain ID. Default includes entire domain
          INTEGER(KIND=IKIND) :: Id = -1
-!        Which physics must be solved in this domain
+
+         ! Which physics must be solved in this domain
          INTEGER(KIND=IKIND) :: phys
-!        The volume of this domain
+
+         ! The volume of this domain
          REAL(KIND=RKIND) :: v = 0._RKIND
-!        General physical properties such as density, elastic modulus...
+
+         ! General physical properties such as density, elastic modulus...
          REAL(KIND=RKIND) :: prop(maxNProp) = 0._RKIND
-!        Electrophysiology model
+
+         ! Electrophysiology model
          TYPE(cepModelType) :: cep
-!        Structure material model
+
+         ! Structure material model
          TYPE(stModelType) :: stM
-!        Viscosity model for fluids
+
+         ! Viscosity model for fluids
          TYPE(viscModelType) :: visc
       END TYPE dmnType
-
-!     Mesh adjacency (neighboring element for each element)
+       
+      !---------
+      ! adjType
+      !---------
+      ! Mesh adjacency (neighboring element for each element)
+      !
       TYPE adjType
-!        No of non-zeros
+         ! No of non-zeros
          INTEGER(KIND=IKIND) :: nnz = 0
-!        Column pointer
+         ! Column pointer
          INTEGER(KIND=IKIND), ALLOCATABLE :: pcol(:)
-!        Row pointer
+         ! Row pointer
          INTEGER(KIND=IKIND), ALLOCATABLE :: prow(:)
       END TYPE adjType
 
-!     Tracer type used for immersed boundaries. Identifies traces of
-!     nodes and integration points on background mesh elements
+      !-----------
+      ! traceType
+      !-----------
+      ! Tracer type used for immersed boundaries. Identifies traces of
+      ! nodes and integration points on background mesh elements
+      !
       TYPE traceType
-!        No. of non-zero nodal traces
+         ! No. of non-zero nodal traces
          INTEGER(KIND=IKIND) :: n = 0
-!        No. of non-zero integration point traces
+         ! No. of non-zero integration point traces
          INTEGER(KIND=IKIND) :: nG = 0
-!        Self pointer of each trace to the IB global node
+         ! Self pointer of each trace to the IB global node
          INTEGER(KIND=IKIND), ALLOCATABLE :: gN(:)
-!        Self pointer of each trace to the IB integration point and
-!        element ID
+         ! Self pointer of each trace to the IB integration point and
+         ! element ID
          INTEGER(KIND=IKIND), ALLOCATABLE :: gE(:,:)
-!        Nodal trace pointer array stores two values for each trace.
-!        (1) background mesh element to which the trace points to,
-!        (2) mesh ID
+         ! Nodal trace pointer array stores two values for each trace.
+         ! (1) background mesh element to which the trace points to,
+         ! (2) mesh ID
          INTEGER(KIND=IKIND), ALLOCATABLE :: nptr(:,:)
-!        Integration point tracer array stores two values for each trace
-!        (1) background mesh element to which the trace points to,
-!        (2) mesh ID
+         ! Integration point tracer array stores two values for each trace
+         ! (1) background mesh element to which the trace points to,
+         ! (2) mesh ID
          INTEGER(KIND=IKIND), ALLOCATABLE :: gptr(:,:)
-!        Parametric coordinate for each nodal trace
+         ! Parametric coordinate for each nodal trace
          REAL(KIND=RKIND), ALLOCATABLE :: xi(:,:)
-!        Parametric coordinate for each Gauss point trace
+         ! Parametric coordinate for each Gauss point trace
          REAL(KIND=RKIND), ALLOCATABLE :: xiG(:,:)
       END TYPE traceType
 
-!     The face type containing mesh at boundary
+      !----------
+      ! faceType
+      !----------
+      ! The face type stores mesh boundary (face) data. 
+      !
+      ! Note: this duplicates many variables in 'mshType'.
+      !
       TYPE faceType
-!        Parametric direction normal to this face (NURBS)
+
+         ! Parametric direction normal to this face (NURBS)
          INTEGER(KIND=IKIND) d
-!        Number of nodes (control points) in a single element
+
+         ! Number of nodes (control points) in a single element
          INTEGER(KIND=IKIND) eNoN
-!        Element type
+
+         ! Element type
          INTEGER(KIND=IKIND) :: eType = eType_NA
-!        The mesh index that this face belongs to
+
+         ! The mesh index that this face belongs to
          INTEGER(KIND=IKIND) :: iM
-!        Number of elements
+
+         ! Number of elements
          INTEGER(KIND=IKIND) :: nEl = 0
-!        Global number of elements
+
+         ! Global number of elements
          INTEGER(KIND=IKIND) :: gnEl = 0
-!        Number of function spaces
+
+         ! Number of function spaces
          INTEGER(KIND=IKIND) nFs
-!        Number of Gauss points for integration
+
+         ! Number of Gauss points for integration
          INTEGER(KIND=IKIND) nG
-!        Number of nodes
+
+         ! Number of nodes
          INTEGER(KIND=IKIND) :: nNo = 0
-!        Global element Ids
+
+         ! Global element Ids
+         ! this array seems to just duplicate element connectivity.
          INTEGER(KIND=IKIND), ALLOCATABLE :: gE(:)
-!        Global node Ids
+
+         ! Global node Ids
          INTEGER(KIND=IKIND), ALLOCATABLE :: gN(:)
-!        Global to local maping tnNo --> nNo
+
+         ! Global to local maping tnNo --> nNo
          INTEGER(KIND=IKIND), ALLOCATABLE :: lN(:)
-!        Connectivity array
+
+         ! Connectivity array
          INTEGER(KIND=IKIND), ALLOCATABLE :: IEN(:,:)
-!        EBC array (gE + gIEN)
+
+         ! EBC array (gE + gIEN)
          INTEGER(KIND=IKIND), ALLOCATABLE :: gebc(:,:)
-!        Surface area
+
+         ! Surface area
          REAL(KIND=RKIND) area
-!        Gauss point weights
+
+         ! Gauss point weights
          REAL(KIND=RKIND), ALLOCATABLE :: w(:)
-!        Position coordinates
+
+         ! Position coordinates
          REAL(KIND=RKIND), ALLOCATABLE :: x(:,:)
-!        Gauss points in parametric space
+
+         ! Gauss points in parametric space
          REAL(KIND=RKIND), ALLOCATABLE :: xi(:,:)
-!        Shape functions at Gauss points
+
+         ! Shape functions at Gauss points
          REAL(KIND=RKIND), ALLOCATABLE :: N(:,:)
-!        Normal vector to each nodal point
+
+         ! Normal vector to each nodal point
          REAL(KIND=RKIND), ALLOCATABLE :: nV(:,:)
-!        Shape functions derivative at Gauss points
+
+         ! Shape functions derivative at Gauss points
          REAL(KIND=RKIND), ALLOCATABLE :: Nx(:,:,:)
-!        Second derivatives of shape functions - for shells & IGA
+
+         ! Second derivatives of shape functions - for shells & IGA
          REAL(KIND=RKIND), ALLOCATABLE :: Nxx(:,:,:)
-!        Face name for flux files
+
+         ! Face name for flux files
          CHARACTER(LEN=stdL) name
-!        Face nodal adjacency
+
+         ! Face nodal adjacency
          TYPE(adjType) :: nAdj
-!        Face element adjacency
+
+         ! Face element adjacency
          TYPE(adjType) :: eAdj
-!        Function spaces (basis)
+
+         ! Function spaces (basis)
          TYPE(fsType), ALLOCATABLE :: fs(:)
+
       END TYPE faceType
 
-!     Declared type for outputed variables
+      !------------
+      ! outputType
+      !------------
+      ! Declared type for outputed variables
+      ! 
       TYPE outputType
-!        Is this output suppose to be written into VTK, boundary, vol
+         ! Is this output suppose to be written into VTK, boundary, vol
          LOGICAL :: wtn(3) = .FALSE.
-!        The group that this belong to (one of outType_*)
+         ! The group that this belong to (one of outType_*)
          INTEGER(KIND=IKIND) :: grp = outGrp_NA
-!        Length of the outputed variable
+         ! Length of the outputed variable
          INTEGER(KIND=IKIND) l
-!        Offset from the first index
+         ! Offset from the first index
          INTEGER(KIND=IKIND) o
-!        The name to be used for the output and also in input file
+         ! The name to be used for the output and also in input file
          CHARACTER(LEN=stdL) name
       END TYPE outputType
 
-!     Linear system of equations solver type
+      !---------
+      ! lsType
+      !---------
+      ! Linear system of equations solver type
+      ! 
       TYPE lsType
-!        LS solver                     (IN)
+         ! LS solver                     (IN)
          INTEGER(KIND=IKIND) LS_type
-!        Preconditioner                (IN)
+         ! Preconditioner                (IN)
          INTEGER(KIND=IKIND) PREC_Type
-!        Successful solving            (OUT)
+         ! Successful solving            (OUT)
          LOGICAL :: suc = .FALSE.
-!        Maximum iterations            (IN)
+         ! Maximum iterations            (IN)
          INTEGER(KIND=IKIND) :: mItr = 1000
-!        Space dimension               (IN)
+         ! Space dimension               (IN)
          INTEGER(KIND=IKIND) sD
-!        Number of iteration           (OUT)
+         ! Number of iteration           (OUT)
          INTEGER(KIND=IKIND) itr
-!        Number of Ax multiple         (OUT)
+         ! Number of Ax multiple         (OUT)
          INTEGER(KIND=IKIND) cM
-!        Number of |x| norms           (OUT)
+         ! Number of |x| norms           (OUT)
          INTEGER(KIND=IKIND) cN
-!        Number of <x.y> dot products  (OUT)
+         ! Number of <x.y> dot products  (OUT)
          INTEGER(KIND=IKIND) cD
-!        Only for data alignment       (-)
+         ! Only for data alignment       (-)
          INTEGER(KIND=IKIND) reserve
-!        Absolute tolerance            (IN)
+         ! Absolute tolerance            (IN)
          REAL(KIND=RKIND) :: absTol = 1.E-8_RKIND
-!        Relative tolerance            (IN)
+         ! Relative tolerance            (IN)
          REAL(KIND=RKIND) :: relTol = 1.E-8_RKIND
-!        Initial norm of residual      (OUT)
+         ! Initial norm of residual      (OUT)
          REAL(KIND=RKIND) iNorm
-!        Final norm of residual        (OUT)
+         ! Final norm of residual        (OUT)
          REAL(KIND=RKIND) fNorm
-!        Res. rduction in last itr.    (OUT)
+         ! Res. rduction in last itr.    (OUT)
          REAL(KIND=RKIND) dB
-!        Calling duration              (OUT)
+         ! Calling duration              (OUT)
          REAL(KIND=RKIND) callD
       END TYPE lsType
 
-!     Contact model type
+      !----------------
+      ! cntctModelType
+      !----------------
+      ! Contact model type
+      ! 
       TYPE cntctModelType
-!        Contact model
+         ! Contact model
          INTEGER(KIND=IKIND) :: cType = cntctM_NA
-!        Penalty parameter
+         ! Penalty parameter
          REAL(KIND=RKIND) k
-!        Min depth of penetration
+         ! Min depth of penetration
          REAL(KIND=RKIND) h
-!        Max depth of penetration
+         ! Max depth of penetration
          REAL(KIND=RKIND) c
-!        Min norm of face normals in contact
+         ! Min norm of face normals in contact
          REAL(KIND=RKIND) al
-!        Tolerance
+         ! Tolerance
          REAL(KIND=RKIND) :: tol = 1.E-6_RKIND
       END TYPE cntctModelType
 
 !--------------------------------------------------------------------
-!     All the subTypes are defined, now defining the major types that
-!     will be directly allocated
+!                     P r i m a r y   T y p e s 
+!--------------------------------------------------------------------
+! Define major types that will be directly allocated.
 
+      !--------------
+      ! cplFaceType
+      !--------------
+      !
       TYPE cplFaceType
-!        GenBC_Dir/GenBC_Neu
+         ! GenBC_Dir/GenBC_Neu
          INTEGER(KIND=IKIND) :: bGrp
-!        Pointer to X
+         ! Pointer to X
          INTEGER(KIND=IKIND) :: Xptr
-!        Internal genBC use
+         ! Internal genBC use
          INTEGER(KIND=IKIND) :: eqv = 0
-!        Flow rates at t
+         ! Flow rates at t
          REAL(KIND=RKIND) Qo
-!        Flow rates at t+dt
+         ! Flow rates at t+dt
          REAL(KIND=RKIND) Qn
-!        Pressures at t
+         ! Pressures at t
          REAL(KIND=RKIND) Po
-!        Pressures at t+dt
+         ! Pressures at t+dt
          REAL(KIND=RKIND) Pn
-!        Imposed flow/pressure
+         ! Imposed flow/pressure
          REAL(KIND=RKIND) y
-!        Name of the face
+         ! Name of the face
          CHARACTER(LEN=128) name
-!        RCR type BC
+         ! RCR type BC
          TYPE(rcrType) :: RCR
       END TYPE cplFaceType
 
-!     For coupled 0D-3D problems
+      !-----------
+      ! cplBCType
+      !-----------
+      ! For coupled 0D-3D problems
+      !
       TYPE cplBCType
-!        Is multi-domain active
+         ! Is multi-domain active
          LOGICAL :: coupled = .FALSE.
-!        Whether to use genBC
+         ! Whether to use genBC
          LOGICAL :: useGenBC = .FALSE.
-!        Number of coupled faces
+         ! Number of coupled faces
          INTEGER(KIND=IKIND) :: nFa = 0
-!        Number of unknowns in the 0D domain
+         ! Number of unknowns in the 0D domain
          INTEGER(KIND=IKIND) :: nX = 0
-!        Number of output variables addition to nX
+         ! Number of output variables addition to nX
          INTEGER(KIND=IKIND) :: nXp = 0
-!        Implicit/Explicit/Semi-implicit schemes
+         ! Implicit/Explicit/Semi-implicit schemes
          INTEGER(KIND=IKIND) :: schm = cplBC_NA
-!        Path to the 0D code binary file
+         ! Path to the 0D code binary file
          CHARACTER(LEN=stdL) :: binPath
-!        File name for communication between 0D and 3D
+         ! File name for communication between 0D and 3D
          CHARACTER(LEN=stdL) :: commuName = ".CPLBC_0D_3D.tmp"
-!        The name of history file containing "X"
+         ! The name of history file containing "X"
          CHARACTER(LEN=stdL) :: saveName = "LPN.dat"
-!        New time step unknowns in the 0D domain
+         ! New time step unknowns in the 0D domain
          REAL(KIND=RKIND), ALLOCATABLE :: xn(:)
-!        Old time step unknowns in the 0D domain
+         ! Old time step unknowns in the 0D domain
          REAL(KIND=RKIND), ALLOCATABLE :: xo(:)
-!        Output variables to be printed
+         ! Output variables to be printed
          REAL(KIND=RKIND), ALLOCATABLE :: xp(:)
-!        Data structure used for communicating with 0D code
+         ! Data structure used for communicating with 0D code
          TYPE(cplFaceType), ALLOCATABLE :: fa(:)
       END TYPE cplBCType
 
-!     This is the container for a mesh or NURBS patch, those specific
-!     to NURBS are noted
+      !---------
+      ! mshType
+      !---------
+      ! This is the container for a mesh or NURBS patch, those specific
+      ! to NURBS are noted
+      !
       TYPE mshType
-!        Whether the shape function is linear
+
+         ! Whether the shape function is linear
          LOGICAL lShpF
-!        Whether the mesh is shell
+
+         ! Whether the mesh is shell
          LOGICAL :: lShl = .FALSE.
-!        Whether the mesh is fibers (Purkinje)
+
+         ! Whether the mesh is fibers (Purkinje)
          LOGICAL :: lFib = .FALSE.
-!        Element type
+
+         ! Element type
          INTEGER(KIND=IKIND) :: eType = eType_NA
-!        Number of nodes (control points) in a single element
+
+         ! Number of nodes (control points) in a single element
          INTEGER(KIND=IKIND) eNoN
-!        Global number of elements (knot spans)
+
+         ! Global number of elements (knot spans)
          INTEGER(KIND=IKIND) :: gnEl = 0
-!        Global number of nodes (control points)
+
+         ! Global number of nodes (control points)
          INTEGER(KIND=IKIND) :: gnNo = 0
-!        Number of element face. Used for reading Gambit mesh files
+
+         ! Number of element face. Used for reading Gambit mesh files
          INTEGER(KIND=IKIND) nEf
-!        Number of elements (knot spans)
+
+         ! Number of elements (knot spans)
          INTEGER(KIND=IKIND) :: nEl = 0
-!        Number of faces
+
+         ! Number of faces
          INTEGER(KIND=IKIND) :: nFa = 0
-!        Number of function spaces
+
+         ! Number of function spaces
          INTEGER(KIND=IKIND) :: nFs
-!        Number of Gauss points for integration
+
+         ! Number of Gauss points for integration
          INTEGER(KIND=IKIND) nG
-!        Number of nodes (control points)
+
+         ! Number of nodes (control points)
          INTEGER(KIND=IKIND) :: nNo = 0
-!        Number of elements sample points to be outputs (NURBS)
+
+         ! Number of elements sample points to be outputs (NURBS)
          INTEGER(KIND=IKIND) nSl
-!        The element type recognized by VTK format
+
+         ! The element type recognized by VTK format
          INTEGER(KIND=IKIND) vtkType
-!        Number of fiber directions
+
+         ! Number of fiber directions
          INTEGER(KIND=IKIND) nFn
-!        Mesh scale factor
+
+         ! Mesh scale factor
          REAL(KIND=RKIND) scF
-!        IB: Mesh size parameter
+
+         ! IB: Mesh size parameter
          REAL(KIND=RKIND) dx
-!        Element distribution between processors
+
+         ! Element distribution between processors
          INTEGER(KIND=IKIND), ALLOCATABLE :: eDist(:)
-!        Element domain ID number
+
+         ! Element domain ID number
          INTEGER(KIND=IKIND), ALLOCATABLE :: eId(:)
-!        Global nodes maping nNo --> tnNo
+
+         !----------------------------------
+         ! Variables for the complete mesh.
+         !----------------------------------
+         !
+         ! Global nodes maping nNo --> tnNo
          INTEGER(KIND=IKIND), ALLOCATABLE :: gN(:)
-!        GLobal projected nodes mapping
-!        projected -> unprojected mapping
+
+         ! GLobal projected nodes mapping  projected -> unprojected mapping
          INTEGER(KIND=IKIND), ALLOCATABLE :: gpN(:)
-!        Global connectivity array mappig eNoN,nEl --> gnNo
+
+         ! Global connectivity array mappig eNoN,nEl --> gnNo
          INTEGER(KIND=IKIND), ALLOCATABLE :: gIEN(:,:)
-!        The connectivity array mapping eNoN,nEl --> nNo
+
+         !-----------------------------------------
+         ! Variables for a partitioned (sub) mesh.
+         !-----------------------------------------
+         !
+         ! The connectivity array mapping eNoN,nEl --> nNo
          INTEGER(KIND=IKIND), ALLOCATABLE :: IEN(:,:)
-!        gIEN mapper from old to new
+
+         ! gIEN mapper from old to new
          INTEGER(KIND=IKIND), ALLOCATABLE :: otnIEN(:)
-!        Local knot pointer (NURBS)
+
+         ! Local knot pointer (NURBS)
          INTEGER(KIND=IKIND), ALLOCATABLE :: INN(:,:)
-!        Global to local maping tnNo --> nNo
+
+         ! Global to local maping tnNo --> nNo
          INTEGER(KIND=IKIND), ALLOCATABLE :: lN(:)
-!        Shells: extended IEN array with neighboring nodes
+
+         ! Shells: extended IEN array with neighboring nodes
          INTEGER(KIND=IKIND), ALLOCATABLE :: eIEN(:,:)
-!        Shells: boundary condition variable
+
+         ! Shells: boundary condition variable
          INTEGER(KIND=IKIND), ALLOCATABLE :: sbc(:,:)
-!        IB: Whether a cell is a ghost cell or not
+
+         ! IB: Whether a cell is a ghost cell or not
          INTEGER(KIND=IKIND), ALLOCATABLE :: iGC(:)
-!        Control points weights (NURBS)
+
+         ! Control points weights (NURBS)
          REAL(KIND=RKIND), ALLOCATABLE :: nW(:)
-!        Gauss weights
+
+         ! Gauss weights
          REAL(KIND=RKIND), ALLOCATABLE :: w(:)
-!        Gauss integration points in parametric space
+
+         ! Gauss integration points in parametric space
          REAL(KIND=RKIND), ALLOCATABLE :: xi(:,:)
-!        Bounds on parameteric coordinates
+
+         ! Bounds on parameteric coordinates
          REAL(KIND=RKIND), ALLOCATABLE :: xib(:,:)
-!        Position coordinates
+
+         ! Position coordinates
          REAL(KIND=RKIND), ALLOCATABLE :: x(:,:)
-!        Parent shape function
+
+         ! Parent shape function
          REAL(KIND=RKIND), ALLOCATABLE :: N(:,:)
-!        Shape function bounds
+
+         ! Shape function bounds
          REAL(KIND=RKIND), ALLOCATABLE :: Nb(:,:)
-!        Normal vector to each nodal point (for Shells)
+         
+         ! Normal vector to each nodal point (for Shells)
          REAL(KIND=RKIND), ALLOCATABLE :: nV(:,:)
-!        Fiber orientations stored at the element level - used for
-!        electrophysiology and solid mechanics
+
+         ! Fiber orientations stored at the element level - used for
+         ! electrophysiology and solid mechanics
          REAL(KIND=RKIND), ALLOCATABLE :: fN(:,:)
-!        Parent shape functions gradient
+
+         ! Parent shape functions gradient
          REAL(KIND=RKIND), ALLOCATABLE :: Nx(:,:,:)
-!        Second derivatives of shape functions - used for shells & IGA
+
+         ! Second derivatives of shape functions - used for shells & IGA
          REAL(KIND=RKIND), ALLOCATABLE :: Nxx(:,:,:)
-!        Mesh Name
+
+         ! Mesh Name.
          CHARACTER(LEN=stdL) :: name
-!        Mesh nodal adjacency
+
+         ! Mesh nodal adjacency
          TYPE(adjType) :: nAdj
-!        Mesh element adjacency
+
+         ! Mesh element adjacency
          TYPE(adjType) :: eAdj
-!        Function spaces (basis)
+
+         ! Function spaces (basis)
          TYPE(fsType), ALLOCATABLE :: fs(:)
-!        BSpline in different directions (NURBS)
+
+         ! BSpline in different directions (NURBS)
          TYPE(bsType), ALLOCATABLE :: bs(:)
-!        Faces are stored in this variable
+
+         ! Faces are stored in this variable
          TYPE(faceType), ALLOCATABLE :: fa(:)
-!        IB: tracers
+
+         ! IB: tracers
          TYPE(traceType) :: trc
       END TYPE mshType
 
-!     Equation type
+      !--------
+      ! eqType
+      !--------
+      ! Equation type
+      ! 
       TYPE eqType
-!        Should be satisfied in a coupled/uncoupled fashion
+         ! Should be satisfied in a coupled/uncoupled fashion
          LOGICAL :: coupled = .TRUE.
-!        Satisfied/not satisfied
+
+         ! Satisfied/not satisfied
          LOGICAL ok
-!        Use C++ Trilinos framework for the linear solvers
+
+         ! Use C++ Trilinos framework for the linear solvers
          LOGICAL useTLS
-!        Use C++ Trilinos framework for assembly and for linear solvers
+
+         ! Use C++ Trilinos framework for assembly and for linear solvers
          LOGICAL assmTLS
-!        Degrees of freedom
+
+         ! Degrees of freedom
          INTEGER(KIND=IKIND) :: dof = 0
-!        Pointer to end of unknown Yo(:,s:e)
+
+         ! Pointer to end of unknown Yo(:,s:e)
          INTEGER(KIND=IKIND) e
-!        Number of performed iterations
+
+         ! Number of performed iterations
          INTEGER(KIND=IKIND) itr
-!        Maximum iteration for this eq.
+
+         ! Maximum iteration for this eq.
          INTEGER(KIND=IKIND) :: maxItr = 5
-!        Minimum iteration for this eq.
+
+         ! Minimum iteration for this eq.
          INTEGER(KIND=IKIND) :: minItr = 1
-!        Number of possible outputs
+
+         ! Number of possible outputs
          INTEGER(KIND=IKIND) :: nOutput = 0
-!        IB: Number of possible outputs
+
+         ! IB: Number of possible outputs
          INTEGER(KIND=IKIND) :: nOutIB = 0
-!        Number of domains
+
+         ! Number of domains
          INTEGER(KIND=IKIND) :: nDmn = 0
-!        IB: Number of immersed domains
+
+         ! IB: Number of immersed domains
          INTEGER(KIND=IKIND) :: nDmnIB = 0
-!        Number of BCs
+
+         ! Number of BCs
          INTEGER(KIND=IKIND) :: nBc = 0
-!        IB: Number of BCs on immersed surfaces
+
+         ! IB: Number of BCs on immersed surfaces
          INTEGER(KIND=IKIND) :: nBcIB = 0
-!        Number of BFs
+
+         ! Number of BFs
          INTEGER(KIND=IKIND) :: nBf = 0
-!        Type of equation fluid/heatF/heatS/lElas/FSI
+
+         ! Type of equation fluid/heatF/heatS/lElas/FSI
          INTEGER(KIND=IKIND) phys
-!        Pointer to start of unknown Yo(:,s:e)
+
+         ! Pointer to start of unknown Yo(:,s:e)
          INTEGER(KIND=IKIND) s
-!        \alpha_f
+
+         ! \alpha_f
          REAL(KIND=RKIND) af
-!        \alpha_m
+
+         ! \alpha_m
          REAL(KIND=RKIND) am
-!        \beta
+
+         ! \beta
          REAL(KIND=RKIND) beta
-!        \gamma
+
+         ! \gamma
          REAL(KIND=RKIND) gam
-!        Initial norm of residual
+
+         ! Initial norm of residual
          REAL(KIND=RKIND) iNorm
-!        First iteration norm
+
+         ! First iteration norm
          REAL(KIND=RKIND) pNorm
-!        \rho_{infinity}
+
+         ! \rho_{infinity}
          REAL(KIND=RKIND) roInf
-!        Accepted relative tolerance
+
+         ! Accepted relative tolerance
          REAL(KIND=RKIND) :: tol
-!        Equation symbol
+
+         ! Equation symbol
          CHARACTER(LEN=2) :: sym = "NA"
-!        type of linear solver
+
+         ! type of linear solver
          TYPE(lsType) ls
-!        FSILS type of linear solver
+
+         ! FSILS type of linear solver
          TYPE(FSILS_lsType) FSILS
-!        BCs associated with this equation
+
+         ! BCs associated with this equation
          TYPE(bcType), ALLOCATABLE :: bc(:)
-!        IB: BCs associated with this equation on immersed surfaces
+
+         ! IB: BCs associated with this equation on immersed surfaces
          TYPE(bcType), ALLOCATABLE :: bcIB(:)
-!        domains that this equation must be solved
+
+         ! domains that this equation must be solved
          TYPE(dmnType), ALLOCATABLE :: dmn(:)
-!        IB: immersed domains that this equation must be solved
+
+         ! IB: immersed domains that this equation must be solved
          TYPE(dmnType), ALLOCATABLE :: dmnIB(:)
-!        Outputs
+
+         ! Outputs
          TYPE(outputType), ALLOCATABLE :: output(:)
-!        IB: Outputs
+
+         ! IB: Outputs
          TYPE(outputType), ALLOCATABLE :: outIB(:)
-!        Body force associated with this equation
+
+         ! Body force associated with this equation
          TYPE(bfType), ALLOCATABLE :: bf(:)
       END TYPE eqType
 
-!     This type will be used to write data in the VTK files.
+      !---------- 
+      ! dataType
+      !---------- 
+      ! This type will be used to write data in the VTK files.
+      ! 
       TYPE dataType
-!        Element number of nodes
+         ! Element number of nodes
          INTEGER(KIND=IKIND) eNoN
-!        Number of elements
+         ! Number of elements
          INTEGER(KIND=IKIND) nEl
-!        Number of nodes
+         ! Number of nodes
          INTEGER(KIND=IKIND) nNo
-!        vtk type
+         ! vtk type
          INTEGER(KIND=IKIND) vtkType
-!        Connectivity array
+         ! Connectivity array
          INTEGER(KIND=IKIND), ALLOCATABLE :: IEN(:,:)
-!        Element based variables to be written
+         ! Element based variables to be written
          REAL(KIND=RKIND), ALLOCATABLE :: xe(:,:)
-!        All the variables after transformation to global format
+         ! All the variables after transformation to global format
          REAL(KIND=RKIND), ALLOCATABLE :: gx(:,:)
-!        All the variables to be written (including position)
+         ! All the variables to be written (including position)
          REAL(KIND=RKIND), ALLOCATABLE :: x(:,:)
       END TYPE dataType
 
+      !----------
+      ! rmshType
+      !----------
+      !
       TYPE rmshType
-!     Whether remesh is required for problem or not
+         !     Whether remesh is required for problem or not
          LOGICAL :: isReqd
-!     Method for remeshing: 1-TetGen, 2-MeshSim
+         !     Method for remeshing: 1-TetGen, 2-MeshSim
          INTEGER(KIND=IKIND) :: method
-!     Counter to track number of remesh done
+         !     Counter to track number of remesh done
          INTEGER(KIND=IKIND) :: cntr
-!     Time step from which remeshing is done
+         !     Time step from which remeshing is done
          INTEGER(KIND=IKIND) :: rTS
-!     Time step freq for saving data
+         !     Time step freq for saving data
          INTEGER(KIND=IKIND) :: cpVar
-!     Time step at which forced remeshing is done
+         !     Time step at which forced remeshing is done
          INTEGER(KIND=IKIND) :: fTS
-!     Time step frequency for forced remeshing
+         !     Time step frequency for forced remeshing
          INTEGER(KIND=IKIND) :: freq
-!     Time where remeshing starts
+         !     Time where remeshing starts
          REAL(KIND=RKIND) :: time
-!     Mesh quality parameters
+         !     Mesh quality parameters
          REAL(KIND=RKIND) :: minDihedAng
          REAL(KIND=RKIND) :: maxRadRatio
-!     Edge size of mesh
+         !     Edge size of mesh
          REAL(KIND=RKIND), ALLOCATABLE :: maxEdgeSize(:)
-!     Initial norm of an equation
+         !     Initial norm of an equation
          REAL(KIND=RKIND), ALLOCATABLE :: iNorm(:)
-!     Copy of solution variables where remeshing starts
+         !     Copy of solution variables where remeshing starts
          REAL(KIND=RKIND), ALLOCATABLE :: A0(:,:)
          REAL(KIND=RKIND), ALLOCATABLE :: Y0(:,:)
          REAL(KIND=RKIND), ALLOCATABLE :: D0(:,:)
-!     Flag is set if remeshing is required for each mesh
+         !     Flag is set if remeshing is required for each mesh
          LOGICAL, ALLOCATABLE :: flag(:)
       END TYPE rmshType
 
+      !------------
+      ! ibCommType
+      !------------
+      !
       TYPE ibCommType
-!        Num traces (nodes) local to each process
+         ! Num traces (nodes) local to each process
          INTEGER(KIND=IKIND), ALLOCATABLE :: n(:)
-!        Pointer to global trace (node num) stacked contiguously
+         ! Pointer to global trace (node num) stacked contiguously
          INTEGER(KIND=IKIND), ALLOCATABLE :: gN(:)
-!        Num traces (Gauss points) local to each process
+         ! Num traces (Gauss points) local to each process
          INTEGER(KIND=IKIND), ALLOCATABLE :: nG(:)
-!        Pointer to global trace (Gauss point) stacked contiguously
+         ! Pointer to global trace (Gauss point) stacked contiguously
          INTEGER(KIND=IKIND), ALLOCATABLE :: gE(:)
       END TYPE ibCommType
 
-!     Immersed Boundary (IB) data type
+      !--------
+      ! ibType
+      !--------
+      ! Immersed Boundary (IB) data type
+      !
       TYPE ibType
-!        Whether any file being saved
+         !        Whether any file being saved
          LOGICAL :: savedOnce = .FALSE.
-!        IB method
+         !        IB method
          INTEGER(KIND=IKIND) :: mthd = ibMthd_NA
-!        IB coupling
+         !        IB coupling
          INTEGER(KIND=IKIND) :: cpld = ibCpld_NA
-!        IB interpolation method
+         !        IB interpolation method
          INTEGER(KIND=IKIND) :: intrp = ibIntrp_NA
-!        Current IB domain ID
+         !        Current IB domain ID
          INTEGER(KIND=IKIND) :: cDmn
-!        Current equation
+         !        Current equation
          INTEGER(KIND=IKIND) :: cEq = 0
-!        Total number of IB nodes
+         !        Total number of IB nodes
          INTEGER(KIND=IKIND) :: tnNo
-!        Number of IB meshes
+         !        Number of IB meshes
          INTEGER(KIND=IKIND) :: nMsh
-!        IB call duration (1: total time; 2: update; 3,4: communication)
+         !        IB call duration (1: total time; 2: update; 3,4: communication)
          REAL(KIND=RKIND) :: callD(4)
-!        IB Domain ID
+         !        IB Domain ID
          INTEGER(KIND=IKIND), ALLOCATABLE :: dmnID(:)
-!        Row pointer (for sparse LHS matrix storage)
+         !        Row pointer (for sparse LHS matrix storage)
          INTEGER(KIND=IKIND), ALLOCATABLE :: rowPtr(:)
-!        Column pointer (for sparse LHS matrix storage)
+         !        Column pointer (for sparse LHS matrix storage)
          INTEGER(KIND=IKIND), ALLOCATABLE :: colPtr(:)
-!        IB position coordinates
+         !        IB position coordinates
          REAL(KIND=RKIND), ALLOCATABLE :: x(:,:)
-!        Velocity (new)
+         !        Velocity (new)
          REAL(KIND=RKIND), ALLOCATABLE :: Yb(:,:)
-!        Time derivative of displacement (old)
+         !        Time derivative of displacement (old)
          REAL(KIND=RKIND), ALLOCATABLE :: Auo(:,:)
-!        Time derivative of displacement (new)
+         !        Time derivative of displacement (new)
          REAL(KIND=RKIND), ALLOCATABLE :: Aun(:,:)
-!        Time derivative of displacement (n+am)
+         !        Time derivative of displacement (n+am)
          REAL(KIND=RKIND), ALLOCATABLE :: Auk(:,:)
-!        Displacement (old)
+         !        Displacement (old)
          REAL(KIND=RKIND), ALLOCATABLE :: Ubo(:,:)
-!        Displacement (new)
+         !        Displacement (new)
          REAL(KIND=RKIND), ALLOCATABLE :: Ubn(:,:)
-!        Displacement (n+af)
+         !        Displacement (n+af)
          REAL(KIND=RKIND), ALLOCATABLE :: Ubk(:,:)
-!        Displacement (projected on background mesh, old)
+         !        Displacement (projected on background mesh, old)
          REAL(KIND=RKIND), ALLOCATABLE :: Uo(:,:)
-!        Displacement (projected on background mesh, new, n+af)
+         !        Displacement (projected on background mesh, new, n+af)
          REAL(KIND=RKIND), ALLOCATABLE :: Un(:,:)
-!        Residue (FSI force)
+         !        Residue (FSI force)
          REAL(KIND=RKIND), ALLOCATABLE :: R(:,:)
-!        Residue (displacement, background mesh)
+         !        Residue (displacement, background mesh)
          REAL(KIND=RKIND), ALLOCATABLE :: Ru(:,:)
-!        Residue (displacement, IB mesh)
+         !        Residue (displacement, IB mesh)
          REAL(KIND=RKIND), ALLOCATABLE :: Rub(:,:)
-!        LHS tangent matrix for displacement
+         !        LHS tangent matrix for displacement
          REAL(KIND=RKIND), ALLOCATABLE :: Ku(:,:)
 
-!        DERIVED TYPE VARIABLES
-!        IB meshes
+         !        DERIVED TYPE VARIABLES
+         !        IB meshes
          TYPE(mshType), ALLOCATABLE :: msh(:)
-!        IB communicator
+         !        IB communicator
          TYPE(ibCommType) :: cm
       END TYPE ibType
 
-!     Data type for Trilinos Linear Solver related arrays
+      !---------
+      ! tlsType
+      !---------
+      ! Data type for Trilinos Linear Solver related arrays
       TYPE tlsType
-!        Local to global mapping
+         ! Local to global mapping
          INTEGER(KIND=IKIND), ALLOCATABLE :: ltg(:)
-!        Factor for Dirichlet BCs
+         ! Factor for Dirichlet BCs
          REAL(KIND=RKIND), ALLOCATABLE :: W(:,:)
-!        Residue
+         ! Residue
          REAL(KIND=RKIND), ALLOCATABLE :: R(:,:)
       END TYPE tlsType
-!--------------------------------------------------------------------
-!     All the types are defined, time to use them
 
-!     LOGICAL VARIABLES
-!     Whether there is a requirement to update mesh and Dn-Do variables
+!--------------------------------------------------------------------
+!                    G l o b a l   V a r i b l e s
+!--------------------------------------------------------------------
+
+      ! Interface to C++ Simulation object.
+      type(SimulationClass) :: sim_interface
+
+      !-----------------------------------------------
+      !                 Boolean variables 
+      !-----------------------------------------------
+
+      ! Whether there is a requirement to update mesh and Dn-Do variables
       LOGICAL dFlag
-!     Whether mesh is moving
+
+      !     Whether mesh is moving
       LOGICAL mvMsh
-!     Whether to averaged results
+      !     Whether to averaged results
       LOGICAL saveAve
-!     Whether to save to VTK files
+      !     Whether to save to VTK files
       LOGICAL saveVTK
-!     Whether any file being saved
+      !     Whether any file being saved
       LOGICAL savedOnce
-!     Whether to use separator in output
+      !     Whether to use separator in output
       LOGICAL sepOutput
-!     Whether start from beginning or from simulations
+      !     Whether start from beginning or from simulations
       LOGICAL stFileFlag
-!     Whether to overwrite restart file or not
+      !     Whether to overwrite restart file or not
       LOGICAL stFileRepl
-!     Restart simulation after remeshing
+      !     Restart simulation after remeshing
       LOGICAL resetSim
-!     Check IEN array for initial mesh
+      !     Check IEN array for initial mesh
       LOGICAL ichckIEN
-!     Reset averaging variables from zero
+      !     Reset averaging variables from zero
       LOGICAL zeroAve
-!     Whether CMM equation is initialized
+      !     Whether CMM equation is initialized
       LOGICAL cmmInit
-!     Whether variable wall properties are used for CMM
+      !     Whether variable wall properties are used for CMM
       LOGICAL cmmVarWall
-!     Whether shell equation is being solved
+      !     Whether shell equation is being solved
       LOGICAL shlEq
-!     Whether PRESTRESS is being solved
+      !     Whether PRESTRESS is being solved
       LOGICAL pstEq
-!     Whether velocity-pressure based structural dynamics solver is used
+      !     Whether velocity-pressure based structural dynamics solver is used
       LOGICAL sstEq
-!     Whether to detect and apply any contact model
+      !     Whether to detect and apply any contact model
       LOGICAL iCntct
-!     Whether any Immersed Boundary (IB) treatment is required
+      !     Whether any Immersed Boundary (IB) treatment is required
       LOGICAL ibFlag
-!     Postprocess step - convert bin to vtk
+      !     Postprocess step - convert bin to vtk
       LOGICAL bin2VTK
 
-!     INTEGER(KIND=IKIND) VARIABLES
-!     Current domain
+      !-----------------------------------------------
+      !                 Integer variables 
+      !-----------------------------------------------
+      !  INTEGER(KIND=IKIND) VARIABLES
+
+      ! Current domain
       INTEGER(KIND=IKIND) cDmn
-!     Current equation
+
+      ! Current equation
       INTEGER(KIND=IKIND) cEq
-!     Current time step
+
+      ! Current time step
       INTEGER(KIND=IKIND) cTS
-!     Starting time step
+
+      !     Starting time step
       INTEGER(KIND=IKIND) startTS
-!     Current equation degrees of freedom
+
+      !     Current equation degrees of freedom
       INTEGER(KIND=IKIND) dof
-!     Global total number of nodes
+
+      !     Global total number of nodes
       INTEGER(KIND=IKIND) gtnNo
-!     Number of equations
+
+      !     Number of equations
       INTEGER(KIND=IKIND) nEq
-!     Number of faces in the LHS passed to FSILS
+
+      !     Number of faces in the LHS passed to FSILS
       INTEGER(KIND=IKIND) nFacesLS
-!     Number of meshes
+
+      !     Number of meshes
       INTEGER(KIND=IKIND) nMsh
-!     Number of spatial dimensions
+
+      !     Number of spatial dimensions
       INTEGER(KIND=IKIND) nsd
-!     Number of time steps
+
+      !     Number of time steps
       INTEGER(KIND=IKIND) nTS
-!     Number of initialization time steps
+
+      !     Number of initialization time steps
       INTEGER(KIND=IKIND) nITS
-!     stFiles record length
+
+      !     stFiles record length
       INTEGER(KIND=IKIND) recLn
-!     Start saving after this number of time step
+
+      !     Start saving after this number of time step
       INTEGER(KIND=IKIND) saveATS
-!     Increment in saving solutions
+
+      !     Increment in saving solutions
       INTEGER(KIND=IKIND) saveIncr
-!     Stamp ID to make sure simulation is compatible with stFiles
+
+      !     Stamp ID to make sure simulation is compatible with stFiles
       INTEGER(KIND=IKIND) stamp(7)
-!     Increment in saving restart file
+
+      !     Increment in saving restart file
       INTEGER(KIND=IKIND) stFileIncr
-!     Total number of degrees of freedom per node
+
+      !     Total number of degrees of freedom per node
       INTEGER(KIND=IKIND) tDof
-!     Total number of nodes
+
+      !     Total number of nodes
       INTEGER(KIND=IKIND) tnNo
-!     Restart Time Step
+
+      !     Restart Time Step
       INTEGER(KIND=IKIND) rsTS
-!     Number of stress values to be stored
+
+      !     Number of stress values to be stored
       INTEGER(KIND=IKIND) nstd
 
-!     REAL VARIABLES
-!     Time step size
+      !-----------------------------------------------
+      !                 Real variables 
+      !-----------------------------------------------
+      ! REAL VARIABLES
+
+      !  Time step size
       REAL(KIND=RKIND) dt
-!     Time
+
+      !  Time
       REAL(KIND=RKIND) time
 
-!     CHARACTER VARIABLES
-!     Initialization file path
+      !-----------------------------------------------
+      !                 String variables 
+      !-----------------------------------------------
+
+      ! Initialization file path
       CHARACTER(LEN=stdL) iniFilePath
-!     Saved output file name
+
+      ! Saved output file name
       CHARACTER(LEN=stdL) saveName
-!     Restart file name
+
+      ! Restart file name
       CHARACTER(LEN=stdL) stFileName
-!     Stop_trigger file name
+
+      ! Stop_trigger file name
       CHARACTER(LEN=stdL) stopTrigName
 
-!     ALLOCATABLE DATA
-!     Column pointer (for sparse LHS matrix structure)
+      !-----------------------------------------------
+      !             Dymanic array variables 
+      !-----------------------------------------------
+
+      !  Column pointer (for sparse LHS matrix structure)
       INTEGER(KIND=IKIND), ALLOCATABLE :: colPtr(:)
-!     Domain ID
+
+      !  Domain ID
       INTEGER(KIND=IKIND), ALLOCATABLE :: dmnId(:)
-!     Local to global pointer tnNo --> gtnNo
+
+      !  Local to global pointer tnNo --> gtnNo
       INTEGER(KIND=IKIND), ALLOCATABLE :: ltg(:)
-!     Row pointer (for sparse LHS matrix structure)
+
+      !  Row pointer (for sparse LHS matrix structure)
       INTEGER(KIND=IKIND), ALLOCATABLE :: rowPtr(:)
-!     Array that maps global node id to rowN in the matrix
+
+      !  Array that maps global node id to rowN in the matrix
       INTEGER(KIND=IKIND), ALLOCATABLE :: idMap(:)
-
-!     Boundary nodes set for CMM initialization and for zeroing-out
-!     non-wall nodal displacements
+      
+      ! Boundary nodes set for CMM initialization and for zeroing-out
+      ! non-wall nodal displacements
       INTEGER(KIND=IKIND), ALLOCATABLE :: cmmBdry(:)
-
-!     IB: iblank used for immersed boundaries (1 => solid, 0 => fluid)
+      
+      ! IB: iblank used for immersed boundaries (1 => solid, 0 => fluid)
       INTEGER, ALLOCATABLE :: iblank(:)
 
-!     Old time derivative of variables (acceleration)
+      ! Old time derivative of variables (acceleration)
       REAL(KIND=RKIND), ALLOCATABLE :: Ao(:,:)
-!     New time derivative of variables
+
+      ! New time derivative of variables
       REAL(KIND=RKIND), ALLOCATABLE :: An(:,:)
-!     Old integrated variables (dissplacement)
+
+      ! Old integrated variables (dissplacement)
       REAL(KIND=RKIND), ALLOCATABLE :: Do(:,:)
-!     New integrated variables
+
+      ! New integrated variables
       REAL(KIND=RKIND), ALLOCATABLE :: Dn(:,:)
-!     Residual vector
+
+      ! Residual vector
       REAL(KIND=RKIND), ALLOCATABLE :: R(:,:)
-!     LHS matrix
+
+      ! LHS matrix
       REAL(KIND=RKIND), ALLOCATABLE :: Val(:,:)
-!     Position vector
+
+      ! Position vector
       REAL(KIND=RKIND), ALLOCATABLE :: x(:,:)
-!     Old variables (velocity)
+
+      ! Old variables (velocity)
       REAL(KIND=RKIND), ALLOCATABLE :: Yo(:,:)
-!     New variables
+
+      ! New variables
       REAL(KIND=RKIND), ALLOCATABLE :: Yn(:,:)
-!     Body force
+
+      ! Body force
       REAL(KIND=RKIND), ALLOCATABLE :: Bf(:,:)
 
-!     Additional arrays for velocity-based formulation of nonlinear
-!     solid mechanics
-!     Time derivative of displacement
+      ! Additional arrays for velocity-based formulation of nonlinear
+      ! solid mechanics
+      ! Time derivative of displacement
       REAL(KIND=RKIND), ALLOCATABLE :: Ad(:,:)
-!     Residue of the displacement equation
+
+      ! Residue of the displacement equation
       REAL(KIND=RKIND), ALLOCATABLE :: Rd(:,:)
-!     LHS matrix for displacement equation
+
+      ! LHS matrix for displacement equation
       REAL(KIND=RKIND), ALLOCATABLE :: Kd(:,:)
 
-!     Variables for prestress calculations
+      ! Variables for prestress calculations
       REAL(KIND=RKIND), ALLOCATABLE :: pS0(:,:)
       REAL(KIND=RKIND), ALLOCATABLE :: pSn(:,:)
       REAL(KIND=RKIND), ALLOCATABLE :: pSa(:)
 
-!     Temporary storage for initializing state variables
+      ! Temporary storage for initializing state variables
       REAL(KIND=RKIND), ALLOCATABLE :: Pinit(:)
       REAL(KIND=RKIND), ALLOCATABLE :: Vinit(:,:)
       REAL(KIND=RKIND), ALLOCATABLE :: Dinit(:,:)
 
-!     CMM-variable wall properties: 1-thickness, 2-Elasticity modulus
+      ! CMM-variable wall properties: 1-thickness, 2-Elasticity modulus
       REAL(KIND=RKIND), ALLOCATABLE :: varWallProps(:,:)
 
-!     DERIVED TYPE VARIABLES
-!     Coupled BCs structures used for multidomain simulations
+      ! DERIVED TYPE VARIABLES
+      ! Coupled BCs structures used for multidomain simulations
       TYPE(cplBCType), SAVE :: cplBC
-!     All data related to equations are stored in this container
+
+      ! All data related to equations are stored in this container
       TYPE(eqType), ALLOCATABLE :: eq(:)
-!     FSILS data structure to produce LHS sparse matrix
+
+      ! FSILS data structure to produce LHS sparse matrix
       TYPE(FSILS_lhsType) lhs
-!     All the meshes are stored in this variable
+
+      ! All the meshes are stored in this variable
       TYPE(mshType), ALLOCATABLE :: msh(:)
-!     Input/output to the screen is handled by this structure
+
+      ! Input/output to the screen is handled by this structure
       TYPE(chnlType), POINTER :: std, err, wrn, dbg
-!     To group above channels
+
+      ! To group above channels
       TYPE(ioType), TARGET :: io
-!     The general communicator
+
+      ! The general communicator
       TYPE(cmType) cm
-!     Remesher type
+
+      ! Remesher type
       TYPE(rmshType) rmsh
-!     Contact model type
+
+      ! Contact model type
       TYPE(cntctModelType) cntctM
-!     IB: Immersed boundary data structure
+
+      ! IB: Immersed boundary data structure
       TYPE(ibType), ALLOCATABLE :: ib
-!     Trilinos Linear Solver data type
+
+      ! Trilinos Linear Solver data type
       TYPE(tlsType), ALLOCATABLE :: tls
 
       END MODULE COMMOD

@@ -37,144 +37,197 @@
 !
 !--------------------------------------------------------------------
 
-!     Here parameters related to the elemnt are set
-      SUBROUTINE SELECTELE(lM)
+      !-----------
+      ! SELECTELE
+      !-----------
+      ! Set mesh variables for the input element type. 
+      !
+      ! Mesh variables set 
+      !   mesh % eType - element type (e.g. eType_TET4)
+      !   mesh % nG - number of element gauss points 
+      !   mesh % vtkType - element VTK type (e.g. 10 for tet4)
+      !   mesh % nEf - number of element faces
+      !   mesh % lShpF - if the basis function is linear
+      !
+      ! Mesh array allocated 
+      !   mesh % w(mesh % nG) - Gauss weights
+      !   mesh % xi(insd,mesh % nG) - Gauss integration points in parametric space
+      !   mesh % N(mesh % eNoN,mesh % nG) - Parent shape function
+      !   mesh % Nx(insd, mesh % eNoN, mesh % nG) - Parent shape functions gradient
+      !   mesh % xib(2,nsd) - Bounds on Gauss integration points in parametric space
+      !   mesh % Nb(2,mesh % eNoN) - Bounds on shape functions
+      !
+      SUBROUTINE SELECTELE(mesh)
+
       USE COMMOD
       IMPLICIT NONE
-      TYPE(mshType), INTENT(INOUT) :: lM
+      TYPE(mshType), INTENT(INOUT) :: mesh
 
-      INTEGER(KIND=IKIND) :: insd, g
+      INTEGER(KIND=IKIND) :: insd, g, i
+
+      print *, " "
+      print *, "==================== SELECTELE ==================="
+      print *, "[SELECTELE] mesh % eNoN: ", mesh % eNoN 
 
       insd = nsd
-      IF (lM%lShl) insd = nsd - 1
-      IF (lM%lFib) insd = 1
+      IF (mesh % lShl) insd = nsd - 1
+      IF (mesh % lFib) insd = 1
+      print *, "[SELECTELE] insd: ", insd
+      print *, "[SELECTELE] mesh % nG: ", mesh % nG
 
-      IF (lM%eType .EQ. eType_NRB) THEN
-         ALLOCATE(lM%w(lM%nG), lM%N(lM%eNoN,lM%nG),
-     2      lM%Nx(insd,lM%eNoN,lM%nG))
+      IF (mesh % eType .EQ. eType_NRB) THEN
+         ALLOCATE(mesh % w(mesh % nG), mesh % N(mesh % eNoN,mesh % nG),
+     2      mesh % Nx(insd,mesh % eNoN,mesh % nG))
          IF (insd .EQ. 2) THEN
-            ALLOCATE(lM%Nxx(3,lM%eNoN,lM%nG))
+            ALLOCATE(mesh % Nxx(3,mesh % eNoN,mesh % nG))
          ELSE IF (insd .EQ. 3) THEN
-            ALLOCATE(lM%Nxx(6,lM%eNoN,lM%nG))
+            ALLOCATE(mesh % Nxx(6,mesh % eNoN,mesh % nG))
          END IF
          RETURN
       END IF
 
+      ! Set variables for a specific element type.
+      !
       IF (insd .EQ. 3) THEN
-         SELECT CASE (lM%eNoN)
+         SELECT CASE (mesh % eNoN)
          CASE(4)
-            lM%eType   = eType_TET4
-            lM%nG      = 4
-            lM%vtkType = 10
-            lM%nEf     = 4
-            lM%lShpF   = .TRUE.
+            mesh % eType   = eType_TET4
+            mesh % nG      = 4
+            mesh % vtkType = 10
+            mesh % nEf     = 4
+            mesh % lShpF   = .TRUE.
          CASE(10)
-            lM%eType   = eType_TET10
-            lM%nG      = 15
-            lM%vtkType = 24
-            lM%nEf     = 4
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_TET10
+            mesh % nG      = 15
+            mesh % vtkType = 24
+            mesh % nEf     = 4
+            mesh % lShpF   = .FALSE.
          CASE(8)
-            lM%eType   = eType_HEX8
-            lM%nG      = 8
-            lM%vtkType = 12
-            lM%nEf     = 6
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_HEX8
+            mesh % nG      = 8
+            mesh % vtkType = 12
+            mesh % nEf     = 6
+            mesh % lShpF   = .FALSE.
          CASE(20)
-            lM%eType   = eType_HEX20
-            lM%nG      = 27
-            lM%vtkType = 25
-            lM%nEf     = 6
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_HEX20
+            mesh % nG      = 27
+            mesh % vtkType = 25
+            mesh % nEf     = 6
+            mesh % lShpF   = .FALSE.
          CASE(27)
-            lM%eType   = eType_HEX27
-            lM%nG      = 27
-            lM%vtkType = 29
-            lM%nEf     = 6
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_HEX27
+            mesh % nG      = 27
+            mesh % vtkType = 29
+            mesh % nEf     = 6
+            mesh % lShpF   = .FALSE.
          CASE(6)
-            lM%eType   = eType_WDG
-            lM%nG      = 6
-            lM%vtkType = 13
-            lM%nEf     = 3
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_WDG
+            mesh % nG      = 6
+            mesh % vtkType = 13
+            mesh % nEf     = 3
+            mesh % lShpF   = .FALSE.
          CASE DEFAULT
             err = "Unable to identify combination of nsd and eNoN"
          END SELECT
 
       ELSE IF (insd .EQ. 2) THEN
-         SELECT CASE (lM%eNoN)
+         SELECT CASE (mesh % eNoN)
          CASE(3)
-            lM%eType   = eType_TRI3
-            lM%nG      = 3
-            lM%vtkType = 5
-            lM%nEf     = 3
-            lM%lShpF   = .TRUE.
+            mesh % eType   = eType_TRI3
+            mesh % nG      = 3
+            mesh % vtkType = 5
+            mesh % nEf     = 3
+            mesh % lShpF   = .TRUE.
          CASE(6)
-            lM%eType   = eType_TRI6
-            lM%nG      = 7
-            lM%vtkType = 22
-            lM%nEf     = 3
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_TRI6
+            mesh % nG      = 7
+            mesh % vtkType = 22
+            mesh % nEf     = 3
+            mesh % lShpF   = .FALSE.
          CASE(4)
-            lM%eType   = eType_QUD4
-            lM%nG      = 4
-            lM%vtkType = 9
-            lM%nEf     = 4
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_QUD4
+            mesh % nG      = 4
+            mesh % vtkType = 9
+            mesh % nEf     = 4
+            mesh % lShpF   = .FALSE.
          CASE(8)
-            lM%eType   = eType_QUD8
-            lM%nG      = 9
-            lM%vtkType = 23
-            lM%nEf     = 4
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_QUD8
+            mesh % nG      = 9
+            mesh % vtkType = 23
+            mesh % nEf     = 4
+            mesh % lShpF   = .FALSE.
          CASE(9)
-            lM%eType   = eType_QUD9
-            lM%nG      = 9
-            lM%vtkType = 28
-            lM%nEf     = 4
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_QUD9
+            mesh % nG      = 9
+            mesh % vtkType = 28
+            mesh % nEf     = 4
+            mesh % lShpF   = .FALSE.
          CASE DEFAULT
             err = "Unable to identify combination of nsd and eNoN"
          END SELECT
 
       ELSE IF (insd .EQ. 1) THEN
-         SELECT CASE (lM%eNoN)
+         SELECT CASE (mesh % eNoN)
          CASE(2)
-            lM%eType   = eType_LIN1
-            lM%nG      = 2
-            lM%vtkType = 3
-            lM%nEf     = 2
-            lM%lShpF   = .TRUE.
+            mesh % eType   = eType_LIN1
+            mesh % nG      = 2
+            mesh % vtkType = 3
+            mesh % nEf     = 2
+            mesh % lShpF   = .TRUE.
          CASE(3)
-            lM%eType   = eType_LIN2
-            lM%nG      = 3
-            lM%vtkType = 21
-            lM%nEf     = 2
-            lM%lShpF   = .FALSE.
+            mesh % eType   = eType_LIN2
+            mesh % nG      = 3
+            mesh % vtkType = 21
+            mesh % nEf     = 2
+            mesh % lShpF   = .FALSE.
          CASE DEFAULT
             err = "Unable to identify combination of nsd and eNoN"
          END SELECT
       END IF
 
-      ALLOCATE(lM%w(lM%nG), lM%xi(insd,lM%nG), lM%N(lM%eNoN,lM%nG),
-     2   lM%Nx(insd,lM%eNoN,lM%nG))
+      ! Define Gauss integration points in local (ref) coordinates for 'w' and 'xi'.
+      !
+      ALLOCATE(mesh % w(mesh % nG)) 
+      allocate(mesh % xi(insd,mesh % nG))
+      allocate(mesh % N(mesh % eNoN,mesh % nG))
+      allocate(mesh % Nx(insd,mesh % eNoN,mesh % nG))
 
-      CALL GETGIP(insd, lM%eType, lM%nG, lM%w, lM%xi)
+      CALL GETGIP(insd, mesh % eType, mesh % nG, mesh % w, mesh % xi)
 
-      DO g=1, lM%nG
-         CALL GETGNN(insd, lM%eType, lM%eNoN, lM%xi(:,g), lM%N(:,g),
-     2      lM%Nx(:,:,g))
+      ! Define shape functions and derivatives for each Gauss point.
+      DO i = 1, mesh % nG
+         CALL GETGNN(insd, mesh % eType, mesh % eNoN, mesh % xi(:,i), 
+     2      mesh % N(:,i), mesh % Nx(:,:,i))
       END DO
 
-      ALLOCATE(lM%xib(2,nsd), lM%Nb(2,lM%eNoN))
-      CALL GETNNBNDS(lM%eType, lM%eNoN, lM%xib, lM%Nb)
+      ! Define shape functions bounds.
+      !
+      ALLOCATE(mesh % xib(2,nsd))
+      ALLOCATE(mesh % Nb(2,mesh % eNoN))
+
+      CALL GETNNBNDS(mesh % eType, mesh % eNoN, mesh % xib, mesh % Nb)
 
       RETURN
       END SUBROUTINE SELECTELE
-!--------------------------------------------------------------------
-!     This routine selects boundary element type
+
+      !------------
+      ! SELECTELEB
+      !------------
+      ! Set data for boundary elements. 
+      !
+      ! Sets
+      !   lFa % eType - element type (e.g. eType_TRI3)
+      !   lFa % nG - number of Gauss points
+      !
+      ! Element arrays allocated 
+      !   w(lFa % nG) - Gauss points
+      !   xi(insd, lFa % nG) -  Gauss points in parametric space 
+      !   N(lFa % eNoN, lFa % nG) - Shape functions at Gauss points
+      !   Nx(insd,lFa%eNoN,lFa%nG) - Shape functions derivative at Gauss points
+      !
+      !
       SUBROUTINE SELECTELEB(lM, lFa)
+
       USE COMMOD
       IMPLICIT NONE
       TYPE(mshType), INTENT(INOUT) :: lM
@@ -182,14 +235,21 @@
 
       INTEGER(KIND=IKIND) :: insd, g
 
-      insd = nsd - 1
-      IF (lM%lShl) insd = insd - 1
-      IF (lM%lFib) insd = 0
+      print *, " "
+      print *, "==================== SELECTELEB ==================="
 
-      IF (lM%eType .EQ. eType_NRB) THEN
-         lFa%eType = eType_NRB
-         lFa%nG    = lM%nG/lM%bs(lFa%d)%nG
-         lFa%eNoN  = lM%eNoN/(lM%bs(lFa%d)%p + 1)
+      ! Set number of dimensions, checking for shells and fiber.
+      insd = nsd - 1
+      IF (lM % lShl) insd = insd - 1
+      IF (lM % lFib) insd = 0
+      print *, "[SELECTELEB] lM % lShl: ", lM % lShl
+      print *, "[SELECTELEB] nsd: ", nsd
+      print *, "[SELECTELEB] insd: ", insd
+
+      IF (lM % eType .EQ. eType_NRB) THEN
+         lFa % eType = eType_NRB
+         lFa % nG    = lM%nG/lM%bs(lFa%d)%nG
+         lFa %e NoN  = lM%eNoN/(lM%bs(lFa%d)%p + 1)
 
          ALLOCATE(lFa%w(lFa%nG), lFa%N(lFa%eNoN,lFa%nG),
      2      lFa%Nx(insd,lFa%eNoN,lFa%nG))
@@ -201,25 +261,27 @@
          RETURN
       END IF
 
+      ! Set type and number of Gauss points for Plane elements.
       IF (insd .EQ. 2) THEN
+         print *, "[SELECTELEB] lFa % eNoN: ", lFa % eNoN
          SELECT CASE (lFa%eNoN)
-         CASE(3)
-            lFa%eType = eType_TRI3
-            lFa%nG    = 3
-         CASE(6)
-            lFa%eType = eType_TRI6
-            lFa%nG    = 7
-         CASE(4)
-            lFa%eType = eType_QUD4
-            lFa%nG    = 4
-         CASE(8)
-            lFa%eType = eType_QUD8
-            lFa%nG    = 9
-         CASE(9)
-            lFa%eType = eType_QUD9
-            lFa%nG    = 9
-         CASE DEFAULT
-            err = "Unable to identify combination of nsd and eNoN"
+           CASE(3)
+              lFa % eType = eType_TRI3
+              lFa % nG    = 3
+           CASE(6)
+              lFa % eType = eType_TRI6
+              lFa % nG    = 7
+           CASE(4)
+              lFa % eType = eType_QUD4
+              lFa % nG    = 4
+           CASE(8)
+              lFa % eType = eType_QUD8
+              lFa % nG    = 9
+           CASE(9)
+              lFa % eType = eType_QUD9
+              lFa % nG    = 9
+           CASE DEFAULT
+              err = "Unable to identify combination of nsd and eNoN"
          END SELECT
 
       ELSE IF (insd .EQ. 1) THEN
@@ -239,125 +301,154 @@
          lFa%nG = 1
       END IF
 
-      ALLOCATE(lFa%w(lFa%nG), lFa%xi(insd,lFa%nG),
-     2   lFa%N(lFa%eNoN,lFa%nG), lFa%Nx(insd,lFa%eNoN,lFa%nG))
+      ! Allocate face element arrays
+      !
+      ! w(lFa % nG) - Gauss points
+      ! xi(insd, lFa % nG) -  Gauss points in parametric space 
+      ! N(lFa % eNoN, lFa % nG) - Shape functions at Gauss points
+      ! Nx(insd,lFa%eNoN,lFa%nG) - Shape functions derivative at Gauss points
+      !
+      ALLOCATE(lFa % w(lFa % nG))    
+      ALLOCATE(lFa % xi(insd, lFa % nG))
+      ALLOCATE(lFa % N(lFa % eNoN, lFa % nG))
+      ALLOCATE(lFa % Nx(insd, lFa % eNoN, lFa % nG))
 
+      ! Set data for Gauss weights (w) and integration points (xi).
       CALL GETGIP(insd, lFa%eType, lFa%nG, lFa%w, lFa%xi)
 
-      DO g=1, lFa%nG
+      ! Set data for shape functions (N) and derivatives (Nx).
+      DO g = 1, lFa % nG
          CALL GETGNN(insd, lFa%eType, lFa%eNoN, lFa%xi(:,g),
      2      lFa%N(:,g), lFa%Nx(:,:,g))
       END DO
 
+      print *, "=================== Done SELECTELEB ==================="
+      print *, " "
+
       RETURN
       END SUBROUTINE SELECTELEB
+
 !####################################################################
-!     Returns Gauss integration points in local (ref) coordinates
+
+      !--------
+      ! GETGIP
+      !--------
+      ! Set data for element Gauss weights and integration points.
+      !
       PURE SUBROUTINE GETGIP(insd, eType, nG, w, xi)
+
       USE COMMOD
+
       IMPLICIT NONE
+
       INTEGER(KIND=IKIND), INTENT(IN) :: insd, eType, nG
+
       REAL(KIND=RKIND), INTENT(OUT) :: w(nG), xi(insd,nG)
 
       REAL(KIND=RKIND) s, t, lz, uz
 
       IF (eType .EQ. eType_NRB) RETURN
 
-!     3D elements
+      ! Set Gauss points in parametric space (xi) and
+      ! Gauss point weights (w).
+      !
       SELECT CASE(eType)
-      CASE(eType_TET4)
-         w = 1._RKIND/24._RKIND
-         s = (5._RKIND + 3._RKIND*SQRT(5._RKIND))/20._RKIND
-         t = (5._RKIND -          SQRT(5._RKIND))/20._RKIND
-         xi(1,1) = s; xi(2,1) = t; xi(3,1) = t
-         xi(1,2) = t; xi(2,2) = s; xi(3,2) = t
-         xi(1,3) = t; xi(2,3) = t; xi(3,3) = s
-         xi(1,4) = t; xi(2,4) = t; xi(3,4) = t
 
-      CASE(eType_TET10)
-         w(1)     = 0.030283678097089_RKIND
-         w(2:5)   = 0.006026785714286_RKIND
-         w(6:9)   = 0.011645249086029_RKIND
-         w(10:15) = 0.010949141561386_RKIND
+        ! 3D elements
+        !
+        CASE(eType_TET4)
+          w = 1._RKIND/24._RKIND
+          s = (5._RKIND + 3._RKIND*SQRT(5._RKIND))/20._RKIND
+          t = (5._RKIND -          SQRT(5._RKIND))/20._RKIND
+          xi(1,1) = s; xi(2,1) = t; xi(3,1) = t
+          xi(1,2) = t; xi(2,2) = s; xi(3,2) = t
+          xi(1,3) = t; xi(2,3) = t; xi(3,3) = s
+          xi(1,4) = t; xi(2,4) = t; xi(3,4) = t
 
-         s = 0.25_RKIND
-         xi(1,1) = s; xi(2,1) = s; xi(3,1) = s
+        CASE(eType_TET10)
+          w(1)     = 0.030283678097089_RKIND
+          w(2:5)   = 0.006026785714286_RKIND
+          w(6:9)   = 0.011645249086029_RKIND
+          w(10:15) = 0.010949141561386_RKIND
 
-         s = 0.333333333333333_RKIND
-         t = 0._RKIND
-         xi(1,2) = t; xi(2,2) = s; xi(3,2) = s
-         xi(1,3) = s; xi(2,3) = t; xi(3,3) = s
-         xi(1,4) = s; xi(2,4) = s; xi(3,4) = t
-         xi(1,5) = s; xi(2,5) = s; xi(3,5) = s
+          s = 0.25_RKIND
+          xi(1,1) = s; xi(2,1) = s; xi(3,1) = s
 
-         s = 0.090909090909091_RKIND
-         t = 0.727272727272727_RKIND
-         xi(1,6) = t; xi(2,6) = s; xi(3,6) = s
-         xi(1,7) = s; xi(2,7) = t; xi(3,7) = s
-         xi(1,8) = s; xi(2,8) = s; xi(3,8) = t
-         xi(1,9) = s; xi(2,9) = s; xi(3,9) = s
+          s = 0.333333333333333_RKIND
+          t = 0._RKIND
+          xi(1,2) = t; xi(2,2) = s; xi(3,2) = s
+          xi(1,3) = s; xi(2,3) = t; xi(3,3) = s
+          xi(1,4) = s; xi(2,4) = s; xi(3,4) = t
+          xi(1,5) = s; xi(2,5) = s; xi(3,5) = s
 
-         s = 0.066550153573664_RKIND
-         t = 0.433449846426336_RKIND
-         xi(1,10) = s; xi(2,10) = s; xi(3,10) = t
-         xi(1,11) = s; xi(2,11) = t; xi(3,11) = s
-         xi(1,12) = s; xi(2,12) = t; xi(3,12) = t
-         xi(1,13) = t; xi(2,13) = t; xi(3,13) = s
-         xi(1,14) = t; xi(2,14) = s; xi(3,14) = t
-         xi(1,15) = t; xi(2,15) = s; xi(3,15) = s
+          s = 0.090909090909091_RKIND
+          t = 0.727272727272727_RKIND
+          xi(1,6) = t; xi(2,6) = s; xi(3,6) = s
+          xi(1,7) = s; xi(2,7) = t; xi(3,7) = s
+          xi(1,8) = s; xi(2,8) = s; xi(3,8) = t
+          xi(1,9) = s; xi(2,9) = s; xi(3,9) = s
 
-      CASE(eType_HEX8)
-         w =  1._RKIND
-         s =  1._RKIND/SQRT(3._RKIND)
-         t = -1._RKIND/SQRT(3._RKIND)
-         xi(1,1) = t; xi(2,1) = t; xi(3,1) = t
-         xi(1,2) = s; xi(2,2) = t; xi(3,2) = t
-         xi(1,3) = s; xi(2,3) = s; xi(3,3) = t
-         xi(1,4) = t; xi(2,4) = s; xi(3,4) = t
-         xi(1,5) = t; xi(2,5) = t; xi(3,5) = s
-         xi(1,6) = s; xi(2,6) = t; xi(3,6) = s
-         xi(1,7) = s; xi(2,7) = s; xi(3,7) = s
-         xi(1,8) = t; xi(2,8) = s; xi(3,8) = s
+          s = 0.066550153573664_RKIND
+          t = 0.433449846426336_RKIND
+          xi(1,10) = s; xi(2,10) = s; xi(3,10) = t
+          xi(1,11) = s; xi(2,11) = t; xi(3,11) = s
+          xi(1,12) = s; xi(2,12) = t; xi(3,12) = t
+          xi(1,13) = t; xi(2,13) = t; xi(3,13) = s
+          xi(1,14) = t; xi(2,14) = s; xi(3,14) = t
+          xi(1,15) = t; xi(2,15) = s; xi(3,15) = s
+
+        CASE(eType_HEX8)
+          w =  1._RKIND
+          s =  1._RKIND/SQRT(3._RKIND)
+          t = -1._RKIND/SQRT(3._RKIND)
+          xi(1,1) = t; xi(2,1) = t; xi(3,1) = t
+          xi(1,2) = s; xi(2,2) = t; xi(3,2) = t
+          xi(1,3) = s; xi(2,3) = s; xi(3,3) = t
+          xi(1,4) = t; xi(2,4) = s; xi(3,4) = t
+          xi(1,5) = t; xi(2,5) = t; xi(3,5) = s
+          xi(1,6) = s; xi(2,6) = t; xi(3,6) = s
+          xi(1,7) = s; xi(2,7) = s; xi(3,7) = s
+          xi(1,8) = t; xi(2,8) = s; xi(3,8) = s
 
       CASE(eType_HEX20)
-         w(1 : 8) = 125._RKIND/729._RKIND
-         w(9 :20) = 200._RKIND/729._RKIND
-         w(21:26) = 320._RKIND/729._RKIND
-         w(27)    = 512._RKIND/729._RKIND
+          w(1 : 8) = 125._RKIND/729._RKIND
+          w(9 :20) = 200._RKIND/729._RKIND
+          w(21:26) = 320._RKIND/729._RKIND
+          w(27)    = 512._RKIND/729._RKIND
 
-         s = SQRT(0.6_RKIND)
-         t = 0._RKIND
+          s = SQRT(0.6_RKIND)
+          t = 0._RKIND
 
-         xi(1, 1) = -s; xi(2, 1) = -s; xi(3, 1) = -s
-         xi(1, 2) =  s; xi(2, 2) = -s; xi(3, 2) = -s
-         xi(1, 3) =  s; xi(2, 3) =  s; xi(3, 3) = -s
-         xi(1, 4) = -s; xi(2, 4) =  s; xi(3, 4) = -s
-         xi(1, 5) = -s; xi(2, 5) = -s; xi(3, 5) =  s
-         xi(1, 6) =  s; xi(2, 6) = -s; xi(3, 6) =  s
-         xi(1, 7) =  s; xi(2, 7) =  s; xi(3, 7) =  s
-         xi(1, 8) = -s; xi(2, 8) =  s; xi(3, 8) =  s
+          xi(1, 1) = -s; xi(2, 1) = -s; xi(3, 1) = -s
+          xi(1, 2) =  s; xi(2, 2) = -s; xi(3, 2) = -s
+          xi(1, 3) =  s; xi(2, 3) =  s; xi(3, 3) = -s
+          xi(1, 4) = -s; xi(2, 4) =  s; xi(3, 4) = -s
+          xi(1, 5) = -s; xi(2, 5) = -s; xi(3, 5) =  s
+          xi(1, 6) =  s; xi(2, 6) = -s; xi(3, 6) =  s
+          xi(1, 7) =  s; xi(2, 7) =  s; xi(3, 7) =  s
+          xi(1, 8) = -s; xi(2, 8) =  s; xi(3, 8) =  s
 
-         xi(1, 9) =  t; xi(2, 9) = -s; xi(3, 9) = -s
-         xi(1,10) =  s; xi(2,10) =  t; xi(3,10) = -s
-         xi(1,11) =  t; xi(2,11) =  s; xi(3,11) = -s
-         xi(1,12) = -s; xi(2,12) =  t; xi(3,12) = -s
-         xi(1,13) =  t; xi(2,13) = -s; xi(3,13) =  s
-         xi(1,14) =  s; xi(2,14) =  t; xi(3,14) =  s
-         xi(1,15) =  t; xi(2,15) =  s; xi(3,15) =  s
-         xi(1,16) = -s; xi(2,16) =  t; xi(3,16) =  s
-         xi(1,17) = -s; xi(2,17) = -s; xi(3,17) =  t
-         xi(1,18) =  s; xi(2,18) = -s; xi(3,18) =  t
-         xi(1,19) =  s; xi(2,19) =  s; xi(3,19) =  t
-         xi(1,20) = -s; xi(2,20) =  s; xi(3,20) =  t
+          xi(1, 9) =  t; xi(2, 9) = -s; xi(3, 9) = -s
+          xi(1,10) =  s; xi(2,10) =  t; xi(3,10) = -s
+          xi(1,11) =  t; xi(2,11) =  s; xi(3,11) = -s
+          xi(1,12) = -s; xi(2,12) =  t; xi(3,12) = -s
+          xi(1,13) =  t; xi(2,13) = -s; xi(3,13) =  s
+          xi(1,14) =  s; xi(2,14) =  t; xi(3,14) =  s
+          xi(1,15) =  t; xi(2,15) =  s; xi(3,15) =  s
+          xi(1,16) = -s; xi(2,16) =  t; xi(3,16) =  s
+          xi(1,17) = -s; xi(2,17) = -s; xi(3,17) =  t
+          xi(1,18) =  s; xi(2,18) = -s; xi(3,18) =  t
+          xi(1,19) =  s; xi(2,19) =  s; xi(3,19) =  t
+          xi(1,20) = -s; xi(2,20) =  s; xi(3,20) =  t
 
-         xi(1,21) = -s; xi(2,21) =  t; xi(3,21) =  t
-         xi(1,22) =  s; xi(2,22) =  t; xi(3,22) =  t
-         xi(1,23) =  t; xi(2,23) = -s; xi(3,23) =  t
-         xi(1,24) =  t; xi(2,24) =  s; xi(3,24) =  t
-         xi(1,25) =  t; xi(2,25) =  t; xi(3,25) = -s
-         xi(1,26) =  t; xi(2,26) =  t; xi(3,26) =  s
+          xi(1,21) = -s; xi(2,21) =  t; xi(3,21) =  t
+          xi(1,22) =  s; xi(2,22) =  t; xi(3,22) =  t
+          xi(1,23) =  t; xi(2,23) = -s; xi(3,23) =  t
+          xi(1,24) =  t; xi(2,24) =  s; xi(3,24) =  t
+          xi(1,25) =  t; xi(2,25) =  t; xi(3,25) = -s
+          xi(1,26) =  t; xi(2,26) =  t; xi(3,26) =  s
 
-         xi(1,27) =  t; xi(2,27) =  t; xi(3,27) =  t
+          xi(1,27) =  t; xi(2,27) =  t; xi(3,27) =  t
 
       CASE(eType_HEX27)
          w(1 : 8) = 125._RKIND/729._RKIND
@@ -412,7 +503,8 @@
          xi(1,5) = t; xi(2,5) = s; xi(3,5) = uz
          xi(1,6) = t; xi(2,6) = t; xi(3,6) = uz
 
-!     2D elements
+      ! 2D elements
+      !
       CASE(eType_TRI3)
          w = 1._RKIND/6._RKIND
          s = 2._RKIND/3._RKIND
@@ -636,11 +728,20 @@ c         WRITE(1000+cm%tF(),'(10X,A)') "Fail.."
 
       RETURN
       END SUBROUTINE GETXI
+
 !####################################################################
-!     Returns shape functions and derivatives at given natural coords
+
+      !--------
+      ! GETGNN
+      !--------
+      ! Set data for element shape functions and derivatives at the given natural coords.
+      !
       PURE SUBROUTINE GETGNN(insd, eType, eNoN, xi, N, Nxi)
+
       USE COMMOD
+
       IMPLICIT NONE
+
       INTEGER(KIND=IKIND), INTENT(IN) :: insd, eType, eNoN
       REAL(KIND=RKIND), INTENT(IN)  :: xi(insd)
       REAL(KIND=RKIND), INTENT(OUT) :: N(eNoN), Nxi(insd,eNoN)
@@ -649,28 +750,33 @@ c         WRITE(1000+cm%tF(),'(10X,A)') "Fail.."
 
       IF (eType .EQ. eType_NRB) RETURN
 
-!     3D elements
       SELECT CASE(eType)
-      CASE(eType_TET4)
-         N(1) = xi(1)
-         N(2) = xi(2)
-         N(3) = xi(3)
-         N(4) = 1._RKIND - xi(1) - xi(2) - xi(3)
 
-         Nxi(1,1) =  1._RKIND
-         Nxi(2,1) =  0._RKIND
-         Nxi(3,1) =  0._RKIND
-         Nxi(1,2) =  0._RKIND
-         Nxi(2,2) =  1._RKIND
-         Nxi(3,2) =  0._RKIND
-         Nxi(1,3) =  0._RKIND
-         Nxi(2,3) =  0._RKIND
-         Nxi(3,3) =  1._RKIND
-         Nxi(1,4) = -1._RKIND
-         Nxi(2,4) = -1._RKIND
-         Nxi(3,4) = -1._RKIND
+        ! 3D elements
+        !
+        CASE(eType_TET4)
+          N(1) = xi(1)
+          N(2) = xi(2)
+          N(3) = xi(3)
+          N(4) = 1._RKIND - xi(1) - xi(2) - xi(3)
 
-      CASE(eType_TET10)
+          Nxi(1,1) =  1._RKIND
+          Nxi(2,1) =  0._RKIND
+          Nxi(3,1) =  0._RKIND
+
+          Nxi(1,2) =  0._RKIND
+          Nxi(2,2) =  1._RKIND
+          Nxi(3,2) =  0._RKIND
+
+          Nxi(1,3) =  0._RKIND
+          Nxi(2,3) =  0._RKIND
+          Nxi(3,3) =  1._RKIND
+
+          Nxi(1,4) = -1._RKIND
+          Nxi(2,4) = -1._RKIND
+          Nxi(3,4) = -1._RKIND
+
+        CASE(eType_TET10)
          s     = 1._RKIND - xi(1) - xi(2) - xi(3)
          N(1)  = xi(1)*(2._RKIND*xi(1) - 1._RKIND)
          N(2)  = xi(2)*(2._RKIND*xi(2) - 1._RKIND)
@@ -714,7 +820,6 @@ c         WRITE(1000+cm%tF(),'(10X,A)') "Fail.."
          Nxi(2,10) = -4._RKIND*xi(3)
          Nxi(3,10) =  4._RKIND*( s - xi(3) )
 
-!     2D elements
       CASE(eType_HEX8)
          lx = 1._RKIND - xi(1)
          ly = 1._RKIND - xi(2)
@@ -1097,6 +1202,8 @@ c        N(27) =  lx*ux*ly*uy*lz*uz
          Nxi(2,6) = -s
          Nxi(3,6) =  uz*0.5_RKIND
 
+      ! 2D elements
+      !
       CASE(eType_TRI3)
          N(1) = xi(1)
          N(2) = xi(2)
@@ -1262,8 +1369,14 @@ c        N(8) = lx*my*0.5_RKIND
 
       RETURN
       END SUBROUTINE GETGNN
+
 !--------------------------------------------------------------------
-!     Returns shape functions bounds
+
+      !-----------
+      ! GETNNBNDS
+      !-----------
+      ! Defines shape functions bounds.
+      !
       PURE SUBROUTINE GETNNBNDS(eType, eNoN, xib, Nb)
       USE COMMOD
       IMPLICIT NONE

@@ -35,46 +35,89 @@
 !
 !--------------------------------------------------------------------
 
-!     Read mesh vtu/vtp files in SimVascular format
-      SUBROUTINE READSV(list, lM)
+      !--------
+      ! READSV
+      !--------
+      ! Read mesh vtu/vtp files in SimVascular format
+      !
+      ! Allocates for mesh
+      !   mesh % fa(mesh%nFa)) - mesh faces
+      !
+      SUBROUTINE READSV(list, mesh)
+
       USE COMMOD
       USE LISTMOD
       USE ALLFUN
+
       IMPLICIT NONE
+
       TYPE(listType), INTENT(INOUT) :: list
-      TYPE(mshType), INTENT(INOUT) :: lM
+
+      TYPE(mshType), INTENT(INOUT) :: mesh
 
       INTEGER(KIND=IKIND) :: iFa, e, a, Ac
+
+      character (len = 200) f_str
+
       TYPE(listType), POINTER :: lPtr, lPBC
+
       TYPE(fileType) :: ftmp
+
+      print *, " "
+      print *, "==================== READSV ==================="
+      print *, "[READSV] ichckIEN: ", ichckIEN
 
       lPtr => list%get(ftmp,"Mesh file path")
       IF (.NOT.ASSOCIATED(lPtr)) RETURN
-      CALL READVTU(lM, ftmp%fname)
 
-      CALL SELECTELE(lM)
-      IF (ichckIEN) CALL CHECKIEN(lM, .FALSE.)
+      f_str = ftmp % fname
+      print *, "[READSV] ftmp % fname (mesh file name): ", trim(f_str)
 
-      lM%nFa = list%srch("Add face")
-      IF (lM%lFib .AND. lM%nFa.GT.1) err =
+      ! Read volum mesh .vtu file into 'mesh'.
+      CALL READVTU(mesh, ftmp % fname)
+
+      ! Set element data: type, gauss points, etc.
+      CALL SELECTELE(mesh)
+
+      ! Check the mesh connectivity.
+      IF (ichckIEN) CALL CHECKIEN(mesh, .FALSE.)
+
+      mesh % nFa = list%srch("Add face")
+      IF (mesh%lFib .AND. mesh%nFa.GT.1) err =
      2   "More than one face is not allowed for 1D fiber-based mesh"
-      std = " Number of available faces: "//lM%nFa
+      std = " Number of available faces: "//mesh%nFa
 
-      ALLOCATE (lM%fa(lM%nFa))
-      DO iFa=1, lM%nFa
-         lPBC => list%get(lM%fa(iFa)%name,"Add face",iFa)
-         IF (.NOT.lM%lFib) THEN
+      print *, "[READSV] "
+      print *, "[READSV] mesh % nFa (number of faces): ", mesh % nFa 
+
+      ! Process mesh faces.
+      !
+      ALLOCATE (mesh % fa(mesh % nFa))
+      print *, "[READSV] Process mesh faces ... "
+      DO iFa = 1, mesh % nFa
+         lPBC => list % get(mesh % fa(iFa) % name,"Add face",iFa)
+         print *, " " 
+         print *, "[READSV] ---------- iFa ", iFa, " ----------"
+
+         ! If face mesh is not a fiber.
+         IF (.NOT. mesh % lFib) THEN
             lPtr => lPBC%get(ftmp,"Face file path")
             IF (.NOT.ASSOCIATED(lPtr)) err = "Face file not provided"
-            CALL READVTP(lM%fa(iFa), ftmp%fname)
-            IF (ALLOCATED(lM%fa(iFa)%x)) DEALLOCATE(lM%fa(iFa)%x)
-            IF (.NOT.ALLOCATED(lM%fa(iFa)%gN)) THEN
-               CALL CALCNBC(lM, lM%fa(iFa))
-               DO e=1, lM%fa(iFa)%nEl
-                  DO a=1, lM%fa(iFa)%eNoN
-                     Ac = lM%fa(iFa)%IEN(a,e)+1
-                     Ac = lM%fa(iFa)%gN(Ac)
-                     lM%fa(iFa)%IEN(a,e) = Ac
+
+            ! Read surface mesh from .vtp file.
+            print *, "[READSV] Face name: ", trim(ftmp % fname)
+            CALL READVTP(mesh % fa(iFa), ftmp%fname)
+
+            IF (ALLOCATED(mesh%fa(iFa)%x)) DEALLOCATE(mesh%fa(iFa)%x)
+
+            ! If global node ids are not defined then set them from the face mesh.
+            IF (.NOT. ALLOCATED(mesh % fa(iFa) % gN)) THEN
+               CALL CALCNBC(mesh, mesh % fa(iFa))
+               DO e = 1, mesh % fa(iFa) % nEl
+                  DO a = 1, mesh%fa(iFa)%eNoN
+                     Ac = mesh % fa(iFa) % IEN(a,e)+1
+                     Ac = mesh % fa(iFa) % gN(Ac)
+                     mesh%fa(iFa)%IEN(a,e) = Ac
                   END DO
                END DO
             END IF
@@ -82,13 +125,18 @@
             lPtr => lPBC%get(ftmp,"End nodes face file path")
             IF (.NOT.ASSOCIATED(lPtr)) err =
      2         "End nodes face file path not provided"
-            CALL READENDNLFF(lM%fa(iFa), ftmp%open())
+            CALL READENDNLFF(mesh%fa(iFa), ftmp%open())
          END IF
-         CALL SELECTELEB(lM, lM%fa(iFa))
+
+         ! Set element mesh type, gauss pts, etc.
+         CALL SELECTELEB(mesh, mesh%fa(iFa))
       END DO
 
+      print *, "==================== Done READSV ==================="
+      print *, " "
       RETURN
       END SUBROUTINE READSV
+
 !--------------------------------------------------------------------
 !     Read list of end nodes from a file into face data structure
       SUBROUTINE READENDNLFF(lFa, fid)
