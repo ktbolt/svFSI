@@ -103,7 +103,6 @@ class MeshParameters
   const char* FACE_TYPE = "type";
   std::string MESH_FILE = "mesh_file";
   std::string NAME = "name";
-  std::string PHYSICS = "physics";
 
   public:
       MeshParameters() {};
@@ -114,7 +113,7 @@ class MeshParameters
       std::vector<MeshFace> faces_;
       std::string mesh_file_;
       std::string name_;
-      std::string physics_;
+      //std::string physics_;
 };
 
 //--------------------

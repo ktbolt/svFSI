@@ -65,7 +65,7 @@ void get_mesh_data(Simulation* simulation, char* mesh_name, CintMeshData* f_mesh
   std::cout << "[cpp get_mesh_data] mesh_name: '" << c_mesh_name << "'" << std::endl;
   Mesh* mesh = nullptr;
 
-  for (auto smesh : simulation->fluid_mesh_) {
+  for (auto smesh : simulation->meshes_) {
     if (smesh->name_ == c_mesh_name) {
       std::cout << "[cpp get_mesh_data] Found mesh: '" << smesh->name_ << "'" << std::endl;
       mesh = smesh;
@@ -95,8 +95,8 @@ void get_mesh_data(Simulation* simulation, char* mesh_name, CintMeshData* f_mesh
 void get_nodal_coordinates(Simulation* simulation, int* num_coords, void **coords)
 {
   std::cout << "========== cpp get_nodal_coordinates ==========" << std::endl;
-  auto fluid_mesh = simulation->fluid_mesh_[0];
-  auto nodes = fluid_mesh->nodes_;
+  auto mesh = simulation->meshes_[0];
+  auto nodes = mesh->nodes_;
   int num_nodes = nodes->coordinates_.size() / 3;
   std::cout << "[cpp get_nodal_coordinates] num coords:  " << num_nodes << std::endl;
   double* mblock = (double*)malloc(sizeof(double) * num_nodes * 3);
@@ -120,8 +120,8 @@ void get_node_ids(Simulation* simulation, int* num_ids, void **node_ids)
 {
   std::cout << "========== cpp get_node_ids ==========" << std::endl;
 
-  auto fluid_mesh = simulation->fluid_mesh_[0];
-  auto nodes = fluid_mesh->nodes_;
+  auto mesh = simulation->meshes_[0];
+  auto nodes = mesh->nodes_;
   int num_nodes = nodes->ids_.size();
   std::cout << "[cpp get_node_ids] num nodes:  " << num_nodes << std::endl;
 
@@ -143,8 +143,8 @@ void get_node_ids(Simulation* simulation, int* num_ids, void **node_ids)
 //
 void get_num_meshes(Simulation* simulation, int* num_solid_meshes, int* num_fluid_meshes)
 {
-  *num_solid_meshes = simulation->solid_mesh_.size();
-  *num_fluid_meshes = simulation->fluid_mesh_.size();
+  *num_solid_meshes = simulation->meshes_.size();
+  *num_fluid_meshes = 0;
 }
 
 //-----------

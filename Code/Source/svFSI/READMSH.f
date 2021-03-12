@@ -220,12 +220,14 @@ c               END IF
          END DO
       END IF ! resetSim
 
-!     Examining the existance of projection faces and setting %gN.
-!     Reseting gtnNo and recounting nodes that are not duplicated
+      ! Examining the existance of projection faces and setting %gN.
+      ! Reseting gtnNo and recounting nodes that are not duplicated
+      !
       gtnNo = 0
       CALL SETPROJECTOR(list, avNds)
-      DO iM=1, nMsh
-         DO a=1, msh(iM)%gnNo
+
+      DO iM = 1, nMsh
+         DO a = 1, msh(iM)%gnNo
             IF (msh(iM)%gN(a) .EQ. 0) THEN
                IF (PULLSTACK(avNds,i)) THEN
                   msh(iM)%gN(a) = i
@@ -238,13 +240,15 @@ c               END IF
      2         msh(iM)%gpN(a) = msh(iM)%gN(a)
          END DO
       END DO
+
       DEALLOCATE(x)
       ALLOCATE(x(nsd,gtnNo))
       IF (avNds%n .NE. 0) err = "There are still nodes in the stack"
       CALL DESTROYSTACK(avNds)
 
-!     Temporarily allocate msh%lN array. This is necessary for BCs and
-!     will later be deallocated in DISTRIBUTE
+      ! Temporarily allocate msh%lN array. This is necessary for BCs and
+      ! will later be deallocated in DISTRIBUTE
+
       DO iM=1, nMsh
          ALLOCATE(msh(iM)%lN(gtnNo))
          msh(iM)%lN = 0
@@ -254,8 +258,9 @@ c               END IF
          END DO
       END DO
 
-!     Re-arranging x and finding the size of the entire domain
-!     First rearrange 2D/3D mesh and then, 1D fiber mesh
+      ! Re-arranging x and finding the size of the entire domain
+      ! First rearrange 2D/3D mesh and then, 1D fiber mesh
+      !
       ALLOCATE(ichk(gtnNo))
       ichk = .FALSE.
       b = 0
@@ -366,6 +371,7 @@ c               END IF
 
          IF (ALLOCATED(msh(iM)%eId)) flag = .TRUE.
       END DO
+
       IF (flag) THEN
          ALLOCATE(dmnId(gtnNo))
          dmnId = 0
@@ -381,7 +387,7 @@ c               END IF
          END DO
       END IF
 
-!     Read fiber orientation
+      ! Read fiber orientation
       flag = .FALSE.
       DO iM=1, nMsh
          lPM => list%get(msh(iM)%name,"Add mesh",iM)

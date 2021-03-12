@@ -1,7 +1,7 @@
 
-!----------------------
+!---------------------
 ! compare_cpp_fortran 
-!----------------------
+!---------------------
 ! The compare_cpp_fortran compares values comupted in Fortran code to that 
 ! computed in the cpp code. 
 !
@@ -15,20 +15,20 @@ module compare_cpp_fortran
 
 contains 
 
-  !--------------
-  ! compare_mesh
-  !--------------
-  ! Compare mesh data.
+  !-----------------------
+  ! compare_complete_mesh 
+  !-----------------------
+  ! Compare data for the complete mesh..
   !
-  subroutine compare_mesh()
+  subroutine compare_complete_mesh()
     implicit none
 
     integer i
 
-    print *, "[compare_mesh] "
-    print *, "[compare_mesh] -------------------------------------------- "
-    print *, "[compare_mesh] --------------- compare_mesh --------------- "
-    print *, "[compare_mesh] -------------------------------------------- "
+    print *, "[compare_complete_mesh] "
+    print *, "[compare_complete_mesh] ----------------------------------------------------- "
+    print *, "[compare_complete_mesh] --------------- compare_complete_mesh --------------- "
+    print *, "[compare_complete_mesh] ----------------------------------------------------- "
 
     call compare_complete_mesh_coordinates()
 

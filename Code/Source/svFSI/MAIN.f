@@ -103,7 +103,8 @@
       print *, "[MAIN] --> READFILES return"
       print *, "[MAIN] nsd: ", nsd
 
-      call compare_mesh()
+      ! Compare the C++ and Fortran data for the complete mesh.
+      call compare_complete_mesh()
 
       call exit(0)
 

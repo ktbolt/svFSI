@@ -117,6 +117,9 @@ void Parameters::set_parameters(std::string file_name)
 { 
   tinyxml2::XMLDocument doc;
   
+  std::cout << "========== Parameters::set_parameters ==========" << std::endl;
+  std::cout << "[Parameters::set_parameters] file_name: " << file_name << std::endl;
+
   doc.LoadFile(file_name.c_str());
   
   auto fsi_file = doc.FirstChildElement(FSI_FILE.c_str());
@@ -273,8 +276,8 @@ void MeshParameters::set_parameters(tinyxml2::XMLElement* mesh_params)
   xml_util_get_string(mesh_params, NAME, name_);
   std::cout << NAME + ": " << name_ << std::endl;
 
-  xml_util_get_string(mesh_params, PHYSICS, physics_);
-  std::cout << PHYSICS + ": " << physics_ << std::endl;
+  //xml_util_get_string(mesh_params, PHYSICS, physics_);
+  //std::cout << PHYSICS + ": " << physics_ << std::endl;
 
   xml_util_get_int(mesh_params, DOMAIN, domain_);
   std::cout << DOMAIN + ": " << domain_ << std::endl;

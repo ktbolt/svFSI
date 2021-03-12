@@ -72,9 +72,9 @@ module simulation_interface
     character(len=:), allocatable :: searched_file_name_to_trigger_stop
   end type
 
-  !-----------------
-  ! simulation_mesh
-  !-----------------
+  !----------------------
+  ! simulation_mesh_data
+  !----------------------
   ! Define a type to return mesh parameters value from c++.
   !
   ! Note: the order of the member data must match the struct definition in simulation_wrap.h.
@@ -82,6 +82,7 @@ module simulation_interface
   type :: simulation_mesh_data
     integer(c_int) :: num_coords;
     type(c_ptr) c_coords
+    type(c_ptr) c_node_ids
     ! Put allocatable arrays at the end, these are not set in C++.
     real(c_double), pointer :: coords(:,:)
   end type

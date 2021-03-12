@@ -42,18 +42,11 @@ void Simulation::create_aux_data()
 void Simulation::create_bcs_aux_data()
 {
   std::cout << "========== Simulation::create_bcs_aux_data ==========" << std::endl;
-  for (auto const& mesh : solid_mesh_) { 
+  for (auto const& mesh : meshes_) { 
     for (auto const& face : mesh->faces_) { 
       face->create_bcs_aux_data();
     }
   }
-
-  for (auto const& mesh : fluid_mesh_) { 
-    for (auto const& face : mesh->faces_) { 
-      face->create_bcs_aux_data();
-    }
-  }
-
 
   std::cout << "========== Simulation::create_bcs_aux_data Finish ==========" << std::endl;
 }
@@ -70,18 +63,21 @@ void Simulation::load_mesh()
   int n = 1;
   for (const auto &meshParams : parameters_.mesh_parameters_) { 
     std::cout << "---------- Mesh " << n << " ----------" << std::endl;
-    auto physics = Physics::string_to_type_.at(meshParams.physics_);
-    std::cout << "[Simulation::load_mesh] Physics: " << meshParams.physics_ << std::endl;
+    //auto physics = Physics::string_to_type_.at(meshParams.physics_);
+    //std::cout << "[Simulation::load_mesh] Physics: " << meshParams.physics_ << std::endl;
     std::cout << "[Simulation::load_mesh] Mesh file: " << meshParams.mesh_file_ << std::endl;
 
     auto mesh = new Mesh();
     mesh->name_ = meshParams.name_;
-    mesh->physics_ = physics;
     mesh->load_mesh(meshParams.mesh_file_);
+    meshes_.emplace_back(mesh);
 
+    /*
+    mesh->physics_ = physics;
     if (mesh->physics_ == PhysicsType::fluid) { 
       fluid_mesh_.emplace_back(mesh);
     }
+    */
 
     // Load mesh faces.
     //
